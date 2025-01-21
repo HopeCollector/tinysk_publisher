@@ -1,61 +1,62 @@
-cmake_minimum_required(VERSION 3.14...3.22)
+cmake_minimum_required(VERSION 3.15...3.30)
 
 # ---- Project ----
-
-# Note: update this to your new project's name and version
 project(
-  Greeter
-  VERSION 1.0
-  LANGUAGES CXX
+  TSKPub
+  VERSION 0.0.1
+  LANGUAGES C CXX
 )
 
 # ---- Include guards ----
-
 if(PROJECT_SOURCE_DIR STREQUAL PROJECT_BINARY_DIR)
   message(
     FATAL_ERROR
-      "In-source builds not allowed. Please make a new directory (called a build directory) and run CMake from there."
+    "禁止在项目源码目录中构建，请在项目源码目录外新建一个目录（构建目录），然后在构建目录中运行 CMake。"
   )
 endif()
 
 # ---- Add dependencies via CPM ----
-# see https://github.com/TheLartians/CPM.cmake for more info
-
+# 依赖管理
 include(cmake/CPM.cmake)
 
-# PackageProject.cmake will be used to make our target installable
-CPMAddPackage("gh:TheLartians/PackageProject.cmake@1.8.0")
+# 3rdpart 安装目录
+set(INSTALL_DIR_3RD ${CMAKE_BINARY_DIR}/3rdpart)
+list(APPEND CMAKE_PREFIX_PATH ${INSTALL_DIR_3RD})
 
+# 项目打包
+CPMAddPackage("gh:TheLartians/PackageProject.cmake@1.13.0")
+
+# 日志
 CPMAddPackage(
-  NAME fmt
-  GIT_TAG 10.2.1
-  GITHUB_REPOSITORY fmtlib/fmt
-  OPTIONS "FMT_INSTALL YES" # create an installable target
+  NAME spdlog
+  VERSION 1.15.0
+  GITHUB_REPOSITORY gabime/spdlog
+  OPTIONS
+    "SPDLOG_BUILD_EXAMPLE OFF"
+    "SPDLOG_BUILD_TESTS OFF"
+    "SPDLOG_INSTALL ON"
 )
 
-# ---- Add source files ----
+# 配置文件解析
+CPMAddPackage(
+  NAME fkYAML
+  VERSION 0.4.1
+  GITHUB_REPOSITORY fktn-k/fkYAML
+  OPTIONS
+    "FK_YAML_INSTALL ON"
+)
 
-# Note: globbing sources is considered bad practice as CMake's generators may not detect new files
-# automatically. Keep that in mind when changing files, or explicitly mention them here.
-file(GLOB_RECURSE headers CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/include/*.h")
-file(GLOB_RECURSE sources CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/source/*.cpp")
+# 通信
+CPMAddPackage("gh:zeromq/cppzmq@4.10.0")
 
 # ---- Create library ----
-
-# Note: for header-only libraries change all PUBLIC flags to INTERFACE and create an interface
-# target: add_library(${PROJECT_NAME} INTERFACE)
-add_library(${PROJECT_NAME} ${headers} ${sources})
+add_library(${PROJECT_NAME} source/tskpub.cc)
 set_target_properties(${PROJECT_NAME} PROPERTIES CXX_STANDARD 17)
-
-# being a cross-platform target, we enforce standards conformance on MSVC
-target_compile_options(${PROJECT_NAME} PUBLIC "$<$<COMPILE_LANG_AND_ID:CXX,MSVC>:/permissive->")
-
-# Link dependencies
-target_link_libraries(${PROJECT_NAME} PRIVATE fmt::fmt)
-
-target_include_directories(
-  ${PROJECT_NAME} PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
-                         $<INSTALL_INTERFACE:include/${PROJECT_NAME}-${PROJECT_VERSION}>
+target_compile_options(${PROJECT_NAME} PRIVATE -std=c++17 -Wall -Wextra -Wpedantic)
+target_link_libraries(${PROJECT_NAME} PRIVATE spdlog::spdlog fkYAML::fkYAML cppzmq)
+target_include_directories(${PROJECT_NAME} PUBLIC
+  $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include/${PROJECT_NAME}-${PROJECT_VERSION}>
 )
 
 # ---- Create an installable target ----
@@ -74,5 +75,5 @@ packageProject(
   INCLUDE_DESTINATION include/${PROJECT_NAME}-${PROJECT_VERSION}
   VERSION_HEADER "${VERSION_HEADER_LOCATION}"
   COMPATIBILITY SameMajorVersion
-  DEPENDENCIES "fmt 10.2.1"
+  DEPENDENCIES "spdlog::spdlog 1.8.5;fkYAML::fkYAML 0.4.1;cppzmq 4.10.0"
 )
