@@ -16,23 +16,26 @@ if(PROJECT_SOURCE_DIR STREQUAL PROJECT_BINARY_DIR)
 endif()
 
 # ---- Add dependencies via CPM ----
-# 依赖管理
+# 远程依赖
 include(cmake/CPM.cmake)
 CPMUsePackageLock(package-lock.cmake)
 CPMGetPackage(PackageProject.cmake)
 CPMGetPackage(spdlog)
 CPMGetPackage(fkYAML)
 CPMGetPackage(cppzmq)
+CPMAddPackage(
+  NAME imu
+  VERSION 1.0.0
+  URL "file://${CMAKE_CURRENT_LIST_DIR}/drivers/imu.tar.gz"
+)
+
+# 本地依赖
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(GStreamer REQUIRED IMPORTED_TARGET gstreamer-1.0)
 
 # ---- Create library ----
-add_library(${PROJECT_NAME} source/tskpub.cc)
-set_target_properties(${PROJECT_NAME} PROPERTIES CXX_STANDARD 17)
-target_compile_options(${PROJECT_NAME} PRIVATE -std=c++17 -Wall -Wextra -Wpedantic)
-target_link_libraries(${PROJECT_NAME} PRIVATE spdlog::spdlog fkYAML::fkYAML cppzmq)
-target_include_directories(${PROJECT_NAME} PUBLIC
-  $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
-  $<INSTALL_INTERFACE:include/${PROJECT_NAME}-${PROJECT_VERSION}>
-)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -Wall -Wextra -Wpedantic")
+add_subdirectory(source)
 
 # ---- Create an installable target ----
 string(TOLOWER ${PROJECT_NAME}/version.h VERSION_HEADER_LOCATION)
