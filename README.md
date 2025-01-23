@@ -10,4 +10,41 @@
 
 ## 项目依赖
 
+1. zeromq 一个实现多种通信模式的基础库
+
+    ```bash
+    # install libsodium
+    cd /path/to/build/dir
+    curl -OL https://download.libsodium.org/libsodium/releases/libsodium-1.0.20-stable.tar.gz
+    tar -zxvf libsodium-1.0.20-stable.tar.gz
+    cd libsodium-stable
+    ./configure
+    make -j10
+    make check
+    make install
+
+    # install libzmq
+    cd /path/to/build/dir
+    git clone https://github.com/zeromq/libzmq.git
+    cd libzmq
+    ./autogen.sh
+    ./configure --with-libsodium
+    make -j10
+    make install
+    ldconfig
+    ```
+
+2. capnproto 消息序列化库
+
+    ```bash
+    cd /path/to/build/dir
+    curl -O https://capnproto.org/capnproto-c++-1.1.0.tar.gz
+    tar zxf capnproto-c++-1.1.0.tar.gz
+    cd capnproto-c++-1.1.0
+    ./configure
+    make -j6 check
+    sudo make install
+    ```
+
+
 ## 构建方法
