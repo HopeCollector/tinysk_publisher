@@ -23,13 +23,15 @@ CPMGetPackage(PackageProject.cmake)
 CPMGetPackage(spdlog)
 CPMGetPackage(fkYAML)
 CPMGetPackage(cppzmq)
+
+# 本地第三方依赖
 CPMAddPackage(
   NAME imu
   VERSION 1.0.0
   URL "file://${CMAKE_CURRENT_LIST_DIR}/drivers/imu.tar.gz"
 )
 
-# 本地依赖
+# 本地系统依赖
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(GStreamer REQUIRED IMPORTED_TARGET gstreamer-1.0)
 
