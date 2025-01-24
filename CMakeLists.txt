@@ -35,7 +35,11 @@ CPMAddPackage(
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(GStreamer REQUIRED IMPORTED_TARGET gstreamer-1.0)
 
+find_package(CapnProto CONFIG REQUIRED)
+
 # ---- Create library ----
+add_subdirectory(messages)
+
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -Wall -Wextra -Wpedantic")
 add_subdirectory(source)
 
@@ -49,6 +53,7 @@ packageProject(
   BINARY_DIR ${PROJECT_BINARY_DIR}
   INCLUDE_DIR ${PROJECT_SOURCE_DIR}/include
   INCLUDE_DESTINATION include/${PROJECT_NAME}-${PROJECT_VERSION}
+  INCLUDE_HEADER_PATTERN "*.h;*.hh"
   VERSION_HEADER "${VERSION_HEADER_LOCATION}"
   COMPATIBILITY SameMajorVersion
   DEPENDENCIES "spdlog 1.8.5;fkYAML 0.4.1;cppzmq 4.10.0"
