@@ -11,8 +11,7 @@ foreach(CAPNP_FILE ${CAPNP_FILES})
 endforeach()
 
 # add the generated files to the library
-add_library(messages)
-target_sources(messages PRIVATE ${msgsrcs} ${msgheaders})
+add_library(messages ${msgsrcs} ${msgheaders})
 target_link_libraries(messages PUBLIC CapnProto::capnp)
 target_include_directories(messages PUBLIC 
     $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
