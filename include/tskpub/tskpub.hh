@@ -1,24 +1,19 @@
 #pragma once
 
 #include <memory>
+#include <unordered_map>
 #include <vector>
 
+#include "reader/reader.hh"
+
 namespace tskpub {
-
-  using Data = std::vector<uint8_t>;
-  using DataPtr = std::shared_ptr<Data>;
-  using DataConstPtr = std::shared_ptr<const Data>;
-
-  enum class DataType {
-    IMU,
-    IMAGE,
-    LIDAR,
-  };
-
   class TSKPub {
   public:
     TSKPub();
     ~TSKPub();
-    DataConstPtr read() const noexcept;
+    Data::ConstPtr read(const std::string& sensor_name) const noexcept;
+
+  private:
+    std::unordered_map<std::string, Reader::Ptr> sensor_reader_map_;
   };
 }  // namespace tskpub

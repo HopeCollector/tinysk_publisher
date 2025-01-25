@@ -3,56 +3,64 @@
 #include <functional>
 #include <memory>
 #include <string>
+#include <unordered_map>
 
-#include "tskpub/tskpub.hh"
+#include "common.hh"
+
+#define READER_REGIST(msg_type, reader_type)                                  \
+  static bool regist                                                          \
+      = tskpub::ReaderFactory::regist(msg_type, [](std::string sensor_name) { \
+          return std::make_shared<reader_type>(sensor_name);                  \
+        });
 
 namespace tskpub {
   class Reader {
   public:
     using Ptr = std::shared_ptr<Reader>;
     using ConstPtr = std::shared_ptr<const Reader>;
-    virtual ~Reader() {}
-    virtual DataConstPtr read() = 0;
+    Reader() = delete;
+    Reader(Reader&) = delete;
+    Reader(const Reader&) = delete;
+    Reader& operator=(Reader&) = delete;
+    Reader(std::string sensor_name);
+    virtual ~Reader() = default;
+    virtual Data::ConstPtr read() = 0;
 
   protected:
-    Reader() {}
+    std::string topic_;
+    std::string sensor_name_;
+    std::string msg_type_;
   };
 
-  class StateReader final : public Reader {
+  class StatusReader final : public Reader {
   public:
-    using Ptr = std::shared_ptr<StateReader>;
-    using ConstPtr = std::shared_ptr<const StateReader>;
-    static Ptr create(std::string topic);
-    virtual ~StateReader();
-    DataConstPtr read() override;
-    void set_callback(std::function<std::string()> callback) { callback_ = callback; }
+    using Ptr = std::shared_ptr<StatusReader>;
+    using ConstPtr = std::shared_ptr<const StatusReader>;
+    StatusReader() = delete;
+    StatusReader(StatusReader&) = delete;
+    StatusReader(const StatusReader&) = delete;
+    StatusReader& operator=(StatusReader&) = delete;
+    StatusReader(std::string sensor_name);
+    virtual ~StatusReader();
+    Data::ConstPtr read() override;
+    void set_callback(std::function<std::string()> callback);
 
   private:
-    StateReader() = delete;
-    StateReader(StateReader&) = delete;
-    StateReader(const StateReader&) = delete;
-    StateReader& operator=(StateReader&) = delete;
-    StateReader(std::string topic);
-
-    std::string topic_;
     std::function<std::string()> callback_;
   };
 
-  class IMUReader final : public Reader {
+  class ReaderFactory {
   public:
-    using Ptr = std::shared_ptr<IMUReader>;
-    using ConstPtr = std::shared_ptr<const IMUReader>;
-    static Ptr create(std::string topic);
-    virtual ~IMUReader();
-    DataConstPtr read() override;
+    using Creator = std::function<Reader::Ptr(std::string)>;
+    static Reader::Ptr create(std::string msg_type);
+    static bool regist(std::string msg_type, Creator creator);
 
   private:
-    IMUReader() = delete;
-    IMUReader(IMUReader&) = delete;
-    IMUReader(const IMUReader&) = delete;
-    IMUReader& operator=(IMUReader&) = delete;
-    IMUReader(std::string topic);
+    ReaderFactory() = delete;
+    ReaderFactory(ReaderFactory&) = delete;
+    ReaderFactory(const ReaderFactory&) = delete;
+    ReaderFactory& operator=(ReaderFactory&) = delete;
 
-    std::string topic_;
+    static std::unordered_map<std::string, Creator> creators_;
   };
 }  // namespace tskpub
