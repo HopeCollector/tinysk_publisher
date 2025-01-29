@@ -1,28 +1,38 @@
 #include "reader/reader.hh"
 
+#include <capnp/common.h>
+#include <capnp/serialize-packed.h>
+
+#include <iomanip>
+
+#include "TSKPub/msg/status.capnp.h"
 #include "common.hh"
 
 namespace tskpub {
   Reader::Reader(std::string sensor_name) : sensor_name_(sensor_name) {
-    auto &params = GlobalParams::get_instance().yml[sensor_name];
+    auto& params = GlobalParams::get_instance().yml[sensor_name];
     if (params.empty()) {
       Log::critical("No params for sensor: " + sensor_name);
       return;
     }
     params["topic"].get_value_inplace(topic_);
-    params["msg_type"].get_value_inplace(msg_type_);
+    params["type"].get_value_inplace(msg_type_);
   }
 
   // *****************
   // * ReaderFactory *
   // *****************
-  Reader::Ptr ReaderFactory::create(std::string msg_type) {
+  std::unordered_map<std::string, ReaderFactory::Creator>
+      ReaderFactory::creators_;
+
+  Reader::Ptr ReaderFactory::create(const std::string& msg_type,
+                                    const std::string& sensor_name) {
     auto it = creators_.find(msg_type);
     if (it == creators_.end()) {
       Log::critical("No creater for message type: " + msg_type);
       return nullptr;
     }
-    return it->second(msg_type);
+    return it->second(sensor_name);
   }
 
   bool ReaderFactory::regist(std::string msg_type, Creator creator) {
@@ -42,18 +52,33 @@ namespace tskpub {
   // ****************
   // * StatusReader *
   // ****************
-  READER_REGIST("status", StatusReader);
+  READER_REGIST("Status", StatusReader);
   StatusReader::StatusReader(std::string sensor_name) : Reader(sensor_name) {}
   StatusReader::~StatusReader() {}
   Data::ConstPtr StatusReader::read() {
-    Data::Ptr data = std::make_shared<Data>(1024);
-    data->append(topic_);
-    data->append(std::to_string(nano_now()));
-    data->append(callback_());
-    return data;
-  }
+    // Data::Ptr data = std::make_shared<Data>(1024);
+    // data->append(topic_);
+    // data->append(std::to_string(nano_now()));
+    // data->append("Hello, World!");
+    // return data;
+    capnp::MallocMessageBuilder message{1024};
+    auto status = message.initRoot<Status>();
+    status.setTopic(topic_);
+    status.setTimestamp(nano_now());
+    status.setMessage("Hello, World!");
+    kj::VectorOutputStream output_stream;
+    capnp::writePackedMessage(output_stream, message);
+    auto buffer = output_stream.getArray();
+    Data::Ptr data = std::make_shared<Data>(buffer.size());
+    data->append(static_cast<uint8_t*>(buffer.begin()), buffer.size());
+    std::stringstream ss;
+    ss << std::hex;
+    for (size_t i = 0; i < 10 && i < buffer.size(); ++i) {
+      ss << std::setw(2) << std::setfill('0') << static_cast<int>(buffer[i])
+         << " ";
+    }
+    Log::info("First 10 bytes in hex: " + ss.str());
 
-  void StatusReader::set_callback(std::function<std::string()> callback) {
-    callback_ = callback;
+    return data;
   }
 }  // namespace tskpub

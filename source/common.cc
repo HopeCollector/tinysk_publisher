@@ -26,7 +26,6 @@ namespace tskpub {
     } else {
       logger_ = spdlog::basic_logger_mt("file_logger", dst);
     }
-    logger_ = spdlog::stdout_color_mt("console");
     logger_->set_level(static_cast<spdlog::level::level_enum>(
         params["level"].get_value<int>()));
     logger_->set_pattern(params["pattern"].get_value_ref<const std::string&>());

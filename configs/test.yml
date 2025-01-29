@@ -1,20 +1,20 @@
 log:
-  filename: stdout
+  filename: stderr
   # 0: trace, 1: debug, 2: info, 3: warn, 4: error, 5: critical, 6: off
   loglevel: 0
   pattern: "[%Y-%m-%d %H:%M:%S] [%L] [%P] [%T] %v"
 
-sensors: [status, imu]
+sensors: [status]
 
 status:
   topic: /tinysk/status
   type: Status
   rate: 1
 
-imu:
-  topic: /tinysk/imu
-  type: Imu
-  rate: 100
-  port: /dev/ttyUSB0
-  baudrate: 115200
-  frame_id: head
+# imu:
+#   topic: /tinysk/imu
+#   type: Imu
+#   rate: 100
+#   port: /dev/ttyUSB0
+#   baudrate: 115200
+#   frame_id: head

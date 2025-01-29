@@ -5,27 +5,35 @@
 #include <fkYAML/node.hpp>
 #include <memory>
 
+#include "TSKPub/tskpub.hh"
+
 namespace tskpub {
   struct Data {
     using Ptr = std::shared_ptr<Data>;
     using ConstPtr = std::shared_ptr<const Data>;
-    Data(size_t size) : data(size) {}
+    Data(size_t size) : data(new Msg) { data->reserve(size); }
+
+    void resize(size_t size) { data->resize(size); }
 
     void append(const uint8_t* src, size_t size) {
-      data.insert(data.end(), src, src + size);
+      data->insert(data->end(), src, src + size);
     }
 
     void append(const std::string& src) {
-      data.insert(data.end(), src.begin(), src.end());
+      data->insert(data->end(), src.begin(), src.end());
     }
 
     void append(const Data::ConstPtr src) {
-      data.insert(data.end(), src->data.begin(), src->data.end());
+      data->insert(data->end(), src->data->begin(), src->data->end());
     }
 
-    const uint8_t* begin() { return data.data(); }
-    size_t size() { return data.size(); }
-    std::vector<uint8_t> data;
+    uint8_t* raw() { return data->data(); }
+
+    MsgConstPtr msg() const { return data; }
+
+    const uint8_t* begin() { return data->data(); }
+    size_t size() { return data->size(); }
+    MsgPtr data;
   };
 
   uint64_t nano_now();

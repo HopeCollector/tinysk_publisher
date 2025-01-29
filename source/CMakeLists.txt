@@ -1,12 +1,15 @@
-add_library(${PROJECT_NAME} tskpub.cc common.cc reader/imu.cc reader/reader.cc reader/factory.cc)
+add_library(${PROJECT_NAME} tskpub.cc common.cc reader/imu.cc reader/reader.cc)
 set_target_properties(${PROJECT_NAME} PROPERTIES CXX_STANDARD 17)
 target_compile_options(${PROJECT_NAME} PRIVATE -std=c++17 -Wall -Wextra -Wpedantic)
-target_link_libraries(${PROJECT_NAME} PRIVATE 
-    spdlog fkYAML cppzmq PkgConfig::GStreamer imu messages)
-target_include_directories(${PROJECT_NAME} 
+target_link_libraries(${PROJECT_NAME}
+    PRIVATE spdlog fkYAML cppzmq PkgConfig::GStreamer imu
+    PUBLIC messages)
+target_include_directories(${PROJECT_NAME}
     PUBLIC
-        $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
-        $<INSTALL_INTERFACE:include/${PROJECT_NAME}-${PROJECT_VERSION}>
+    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include/${PROJECT_NAME}-${PROJECT_VERSION}>
     PRIVATE
-        ${PROJECT_SOURCE_DIR}/source
+    ${CMAKE_CURRENT_LIST_DIR}
 )
+get_target_property(INCLUDE_DIRS ${PROJECT_NAME} INCLUDE_DIRECTORIES)
+message(STATUS "Include directories for target ${PROJECT_NAME}: ${INCLUDE_DIRS}")

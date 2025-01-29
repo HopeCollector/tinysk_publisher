@@ -8,7 +8,7 @@
 #include "common.hh"
 
 #define READER_REGIST(msg_type, reader_type)                                  \
-  static bool regist                                                          \
+  static bool regist_success                                                  \
       = tskpub::ReaderFactory::regist(msg_type, [](std::string sensor_name) { \
           return std::make_shared<reader_type>(sensor_name);                  \
         });
@@ -43,16 +43,13 @@ namespace tskpub {
     StatusReader(std::string sensor_name);
     virtual ~StatusReader();
     Data::ConstPtr read() override;
-    void set_callback(std::function<std::string()> callback);
-
-  private:
-    std::function<std::string()> callback_;
   };
 
   class ReaderFactory {
   public:
     using Creator = std::function<Reader::Ptr(std::string)>;
-    static Reader::Ptr create(std::string msg_type);
+    static Reader::Ptr create(const std::string& msg_type,
+                              const std::string& sensor_name);
     static bool regist(std::string msg_type, Creator creator);
 
   private:

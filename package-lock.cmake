@@ -32,4 +32,6 @@ CPMDeclarePackage(cppzmq
   GITHUB_REPOSITORY zeromq/cppzmq
   SYSTEM YES
   EXCLUDE_FROM_ALL YES
+  OPTIONS
+    "CPPZMQ_BUILD_TESTS OFF"
 )

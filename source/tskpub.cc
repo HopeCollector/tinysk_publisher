@@ -1,4 +1,4 @@
-#include "tskpub/tskpub.hh"
+#include "TSKPub/tskpub.hh"
 
 #include <spdlog/spdlog.h>
 
@@ -9,28 +9,32 @@
 #include "common.hh"
 #include "reader/reader.hh"
 
-namespace {}  // namespace
+namespace {
+  std::unordered_map<std::string, tskpub::Reader::Ptr> sensor_reader_map;
+}  // namespace
 
 namespace tskpub {
-  TSKPub::TSKPub() {
+  TSKPub::TSKPub(const std::string &config_file) {
+    GlobalParams::get_instance().load_params(config_file);
+    Log::init();
     auto sensors = GlobalParams::get_instance()
                        .yml["sensors"]
                        .get_value<std::vector<std::string>>();
     for (auto &sensor_name : sensors) {
       auto &params = tskpub::GlobalParams::get_instance().yml[sensor_name];
       const auto &type = params["type"].get_value_ref<const std::string &>();
-      sensor_reader_map_[sensor_name] = ReaderFactory::create(type);
+      sensor_reader_map[sensor_name] = ReaderFactory::create(type, sensor_name);
     }
   }
 
   TSKPub::~TSKPub() {}
 
-  Data::ConstPtr TSKPub::read(const std::string &sensor_name) const noexcept {
-    auto it = sensor_reader_map_.find(sensor_name);
-    if (it == sensor_reader_map_.end()) {
+  MsgConstPtr TSKPub::read(const std::string &sensor_name) const {
+    auto it = sensor_reader_map.find(sensor_name);
+    if (it == sensor_reader_map.end()) {
       Log::critical("No reader for sensor: " + sensor_name);
       return nullptr;
     }
-    return it->second->read();
+    return it->second->read()->msg();
   }
 }  // namespace tskpub
