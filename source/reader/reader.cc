@@ -56,11 +56,6 @@ namespace tskpub {
   StatusReader::StatusReader(std::string sensor_name) : Reader(sensor_name) {}
   StatusReader::~StatusReader() {}
   Data::ConstPtr StatusReader::read() {
-    // Data::Ptr data = std::make_shared<Data>(1024);
-    // data->append(topic_);
-    // data->append(std::to_string(nano_now()));
-    // data->append("Hello, World!");
-    // return data;
     capnp::MallocMessageBuilder message{1024};
     auto status = message.initRoot<Status>();
     status.setTopic(topic_);
@@ -71,14 +66,6 @@ namespace tskpub {
     auto buffer = output_stream.getArray();
     Data::Ptr data = std::make_shared<Data>(buffer.size());
     data->append(static_cast<uint8_t*>(buffer.begin()), buffer.size());
-    std::stringstream ss;
-    ss << std::hex;
-    for (size_t i = 0; i < 10 && i < buffer.size(); ++i) {
-      ss << std::setw(2) << std::setfill('0') << static_cast<int>(buffer[i])
-         << " ";
-    }
-    Log::info("First 10 bytes in hex: " + ss.str());
-
     return data;
   }
 }  // namespace tskpub
