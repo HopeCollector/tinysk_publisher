@@ -27,7 +27,10 @@ namespace tskpub {
     }
   }
 
-  TSKPub::~TSKPub() {}
+  TSKPub::~TSKPub() {
+    GlobalParams::get_instance().destroy();
+    Log::destory();
+  }
 
   MsgConstPtr TSKPub::read(const std::string &sensor_name) const {
     auto it = sensor_reader_map.find(sensor_name);

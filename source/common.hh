@@ -12,6 +12,7 @@ namespace tskpub {
     using Ptr = std::shared_ptr<Data>;
     using ConstPtr = std::shared_ptr<const Data>;
     Data(size_t size) : data(new Msg) { data->reserve(size); }
+    Data(MsgPtr data) : data(data) {}
 
     void resize(size_t size) { data->resize(size); }
 
@@ -41,6 +42,7 @@ namespace tskpub {
   class Log {
   public:
     static void init();
+    static void destory();
 
     static std::shared_ptr<spdlog::logger> get_logger() { return logger_; }
     static void set_logger(std::shared_ptr<spdlog::logger> logger) {
@@ -58,7 +60,6 @@ namespace tskpub {
     Log() = delete;
     Log(const Log&) = delete;
     Log& operator=(Log&) = delete;
-
     static std::shared_ptr<spdlog::logger> logger_;
   };
 
@@ -67,6 +68,7 @@ namespace tskpub {
     static GlobalParams& get_instance();
     void load_params(const std::string& cfg_filename);
     fkyaml::node yml;
+    void destroy();
 
   private:
     GlobalParams();

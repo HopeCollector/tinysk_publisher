@@ -31,6 +31,12 @@ namespace tskpub {
     logger_->set_pattern(params["pattern"].get_value_ref<const std::string&>());
   }
 
+  void Log::destory() {
+    if (!logger_) return;
+    spdlog::drop(logger_->name());
+    logger_ = nullptr;
+  }
+
   GlobalParams::GlobalParams() {}
   GlobalParams::~GlobalParams() {}
 
@@ -43,4 +49,6 @@ namespace tskpub {
     std::ifstream ifs(cfg_filename);
     yml = fkyaml::node::deserialize(ifs);
   }
+
+  void GlobalParams::destroy() { GlobalParams::~GlobalParams(); }
 };  // namespace tskpub

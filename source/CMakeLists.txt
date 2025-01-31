@@ -1,5 +1,4 @@
 add_library(${PROJECT_NAME} tskpub.cc common.cc reader/imu.cc reader/reader.cc)
-set_target_properties(${PROJECT_NAME} PROPERTIES CXX_STANDARD 17)
 target_compile_options(${PROJECT_NAME} PRIVATE -std=c++17 -Wall -Wextra -Wpedantic)
 target_link_libraries(${PROJECT_NAME}
     PRIVATE spdlog fkYAML cppzmq PkgConfig::GStreamer imu
