@@ -40,4 +40,13 @@ namespace tskpub {
     }
     return it->second->read()->msg();
   }
+
+  void *TSKPub::get_reader(const std::string &sensor_name) const {
+    auto it = sensor_reader_map.find(sensor_name);
+    if (it == sensor_reader_map.end()) {
+      Log::critical("No reader for sensor: " + sensor_name);
+      return nullptr;
+    }
+    return reinterpret_cast<void *>(it->second.get());
+  }
 }  // namespace tskpub
