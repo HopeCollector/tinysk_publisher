@@ -6,7 +6,6 @@
 #include <iomanip>
 
 #include "TSKPub/msg/status.capnp.h"
-#include "common.hh"
 
 namespace tskpub {
   Reader::Reader(std::string sensor_name) : sensor_name_(sensor_name) {
@@ -22,13 +21,11 @@ namespace tskpub {
   // *****************
   // * ReaderFactory *
   // *****************
-  std::unordered_map<std::string, ReaderFactory::Creator>
-      ReaderFactory::creators_;
-
   Reader::Ptr ReaderFactory::create(const std::string& msg_type,
                                     const std::string& sensor_name) {
-    auto it = creators_.find(msg_type);
-    if (it == creators_.end()) {
+    const auto& map = creaters();
+    auto it = map.find(msg_type);
+    if (it == map.end()) {
       Log::critical("No creater for message type: " + msg_type);
       return nullptr;
     }
@@ -36,23 +33,29 @@ namespace tskpub {
   }
 
   bool ReaderFactory::regist(std::string msg_type, Creator creator) {
-    auto it = creators_.find(msg_type);
+    auto& map = creaters();
+    auto it = map.find(msg_type);
     bool ret = false;
-    if (it != creators_.end()) {
+    if (it != map.end()) {
       Log::critical("Creater for message type: " + msg_type
                     + " already exists");
       ret = false;
     } else {
-      creators_[msg_type] = creator;
+      map[msg_type] = creator;
       ret = true;
     }
     return ret;
   }
 
+  std::unordered_map<std::string, ReaderFactory::Creator>&
+  ReaderFactory::creaters() {
+    static std::unordered_map<std::string, Creator> creaters;
+    return creaters;
+  }
+
   // ****************
   // * StatusReader *
   // ****************
-  READER_REGIST("Status", StatusReader);
   StatusReader::StatusReader(std::string sensor_name) : Reader(sensor_name) {}
   StatusReader::~StatusReader() {}
   Data::ConstPtr StatusReader::read() {

@@ -7,12 +7,6 @@
 
 #include "common.hh"
 
-#define READER_REGIST(msg_type, reader_type)                                  \
-  static bool regist_success                                                  \
-      = tskpub::ReaderFactory::regist(msg_type, [](std::string sensor_name) { \
-          return std::make_shared<reader_type>(sensor_name);                  \
-        });
-
 namespace tskpub {
   class Reader {
   public:
@@ -32,7 +26,35 @@ namespace tskpub {
     std::string msg_type_;
   };
 
-  class StatusReader final : public Reader {
+  class ReaderFactory {
+  public:
+    using Creator = std::function<Reader::Ptr(std::string)>;
+    static Reader::Ptr create(const std::string& msg_type,
+                              const std::string& sensor_name);
+    static bool regist(std::string msg_type, Creator creator);
+    static std::unordered_map<std::string, Creator>& creaters();
+
+  private:
+    ReaderFactory() = delete;
+    ReaderFactory(ReaderFactory&) = delete;
+    ReaderFactory(const ReaderFactory&) = delete;
+    ReaderFactory& operator=(ReaderFactory&) = delete;
+  };
+
+  template <typename T> struct ReaderRegistor {
+    static bool regist() {
+      return ReaderFactory::regist(T::msg_type(), [](std::string sensor_name) {
+        return std::make_shared<T>(sensor_name);
+      });
+    }
+    static bool registed;
+    ReaderRegistor() { (void)registed; }
+  };
+  template <typename T> bool ReaderRegistor<T>::registed
+      = ReaderRegistor<T>::regist();
+
+  class StatusReader final : public Reader,
+                             public ReaderRegistor<StatusReader> {
   public:
     using Ptr = std::shared_ptr<StatusReader>;
     using ConstPtr = std::shared_ptr<const StatusReader>;
@@ -43,21 +65,23 @@ namespace tskpub {
     StatusReader(std::string sensor_name);
     virtual ~StatusReader();
     Data::ConstPtr read() override;
+    static const char* msg_type() noexcept { return "Status"; }
   };
 
-  class ReaderFactory {
+  class IMUReader final : public Reader, public ReaderRegistor<IMUReader> {
   public:
-    using Creator = std::function<Reader::Ptr(std::string)>;
-    static Reader::Ptr create(const std::string& msg_type,
-                              const std::string& sensor_name);
-    static bool regist(std::string msg_type, Creator creator);
-
-  private:
-    ReaderFactory() = delete;
-    ReaderFactory(ReaderFactory&) = delete;
-    ReaderFactory(const ReaderFactory&) = delete;
-    ReaderFactory& operator=(ReaderFactory&) = delete;
-
-    static std::unordered_map<std::string, Creator> creators_;
+    using Ptr = std::shared_ptr<IMUReader>;
+    using ConstPtr = std::shared_ptr<const IMUReader>;
+    IMUReader() = delete;
+    IMUReader(IMUReader&) = delete;
+    IMUReader(const IMUReader&) = delete;
+    IMUReader& operator=(IMUReader&) = delete;
+    IMUReader(std::string sensor_name);
+    virtual ~IMUReader();
+    void open_device();
+    Data::ConstPtr read() override;
+    MsgPtr package_data(const std::vector<double>& data);
+    static const char* msg_type() noexcept { return "Imu"; }
   };
+
 }  // namespace tskpub
