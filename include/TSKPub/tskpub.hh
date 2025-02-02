@@ -3,6 +3,8 @@
 #include <memory>
 #include <vector>
 
+class TSKPubFixture;
+
 namespace tskpub {
   using Msg = std::vector<uint8_t>;
   using MsgPtr = std::shared_ptr<Msg>;
@@ -21,6 +23,6 @@ namespace tskpub {
     /// @return
     void* get_reader(const std::string& sensor_name) const;
 
-    friend class TSKPubFixture;
+    friend class ::TSKPubFixture;
   };
 }  // namespace tskpub
