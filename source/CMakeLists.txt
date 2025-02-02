@@ -10,5 +10,3 @@ target_include_directories(${PROJECT_NAME}
     PRIVATE
     ${CMAKE_CURRENT_LIST_DIR}
 )
-get_target_property(INCLUDE_DIRS ${PROJECT_NAME} INCLUDE_DIRECTORIES)
-message(STATUS "Include directories for target ${PROJECT_NAME}: ${INCLUDE_DIRS}")
