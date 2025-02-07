@@ -31,10 +31,13 @@ CPMAddPackage(
   URL "file://${CMAKE_CURRENT_LIST_DIR}/drivers/imu.tar.gz"
 )
 
-# 本地系统依赖
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(GStreamer REQUIRED IMPORTED_TARGET gstreamer-1.0)
+CPMAddPackage(
+  NAME Camera
+  VERSION 1.0.0
+  URL "file://${CMAKE_CURRENT_LIST_DIR}/drivers/camera.tar.gz"
+)
 
+# 本地系统依赖
 find_package(CapnProto CONFIG REQUIRED)
 
 # ---- Create library ----

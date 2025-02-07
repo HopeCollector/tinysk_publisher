@@ -84,4 +84,24 @@ namespace tskpub {
     static const char* msg_type() noexcept { return "Imu"; }
   };
 
+  class CameraReader final : public Reader,
+                             public ReaderRegistor<CameraReader> {
+  public:
+    using Ptr = std::shared_ptr<CameraReader>;
+    using ConstPtr = std::shared_ptr<const CameraReader>;
+    CameraReader() = delete;
+    CameraReader(CameraReader&) = delete;
+    CameraReader(const CameraReader&) = delete;
+    CameraReader& operator=(CameraReader&) = delete;
+    CameraReader(std::string sensor_name);
+    virtual ~CameraReader();
+    Data::ConstPtr read() override;
+    MsgPtr package_data(const void* data);
+    static const char* msg_type() noexcept { return "Image"; }
+
+  private:
+    struct Impl;
+    std::unique_ptr<Impl> impl_;
+  };
+
 }  // namespace tskpub
