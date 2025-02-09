@@ -25,17 +25,8 @@ CPMGetPackage(fkYAML)
 CPMGetPackage(cppzmq)
 
 # 本地第三方依赖
-CPMAddPackage(
-  NAME imu
-  VERSION 1.0.0
-  URL "file://${CMAKE_CURRENT_LIST_DIR}/drivers/imu.tar.gz"
-)
-
-CPMAddPackage(
-  NAME Camera
-  VERSION 1.0.0
-  URL "file://${CMAKE_CURRENT_LIST_DIR}/drivers/camera.tar.gz"
-)
+CPMAddPackage(NAME imu URL ${driver_dir}/imu.tar.gz)
+CPMAddPackage(NAME Camera URL ${driver_dir}/camera.tar.gz)
 
 # 本地系统依赖
 find_package(CapnProto CONFIG REQUIRED)
