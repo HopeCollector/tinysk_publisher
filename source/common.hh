@@ -67,8 +67,9 @@ namespace tskpub {
   public:
     static GlobalParams& get_instance();
     void load_params(const std::string& cfg_filename);
-    fkyaml::node yml;
     void destroy();
+    fkyaml::node yml;
+    std::atomic<uint64_t> total_read_bytes;
 
   private:
     GlobalParams();

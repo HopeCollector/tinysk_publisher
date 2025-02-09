@@ -66,6 +66,10 @@ namespace tskpub {
     virtual ~StatusReader();
     Data::ConstPtr read() override;
     static const char* msg_type() noexcept { return "Status"; }
+
+  private:
+    struct Impl;
+    std::unique_ptr<Impl> impl_;
   };
 
   class IMUReader final : public Reader, public ReaderRegistor<IMUReader> {
