@@ -1,5 +1,5 @@
 # add the CapnProto files
-file(GLOB_RECURSE CAPNP_FILES "${CMAKE_CURRENT_SOURCE_DIR}/*.capnp")
+file(GLOB CAPNP_FILES CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/*.capnp")
 
 # generate the C++ files
 set(msg_include_dir ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}/msg)
