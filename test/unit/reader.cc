@@ -9,10 +9,11 @@
 
 #include <string>
 
+#include "cfg.yml.hh"
 #include "common.hh"
 
 namespace {
-  const std::string config_file{"/ws/publisher/test/unit/cfg.yml"};
+  const std::string config_file{CFG_PATH};
   struct Fixture {
     Fixture(const std::string &cfg_file) {
       tskpub::GlobalParams::get_instance().load_params(cfg_file);

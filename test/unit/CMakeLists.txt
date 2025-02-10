@@ -22,11 +22,13 @@ target_include_directories(dep_helper INTERFACE
   ${base_dir}/include
 )
 
+
 file(GLOB reader_test_srcs CONFIGURE_DEPENDS ${CMAKE_CURRENT_LIST_DIR}/*.cc)
 file(GLOB_RECURSE reader_srcs CONFIGURE_DEPENDS ${src_dir}/*.cc)
 add_executable(${PROJECT_NAME} ${reader_test_srcs} ${reader_srcs})
-target_include_directories(${PROJECT_NAME} PRIVATE ${src_dir})
+target_include_directories(${PROJECT_NAME} PRIVATE ${src_dir} ${CMAKE_CURRENT_BINARY_DIR})
 target_link_libraries(${PROJECT_NAME} PRIVATE dep_helper imu Camera)
+configure_file(cfg.yml.hh.in ${CMAKE_CURRENT_BINARY_DIR}/cfg.yml.hh)
 
 
 include(${doctest_SOURCE_DIR}/scripts/cmake/doctest.cmake)
