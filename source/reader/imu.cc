@@ -90,7 +90,14 @@ namespace tskpub {
 
   Data::ConstPtr IMUReader::read() {
     if (!imu) open_device();
-    auto data = imu->read();
+    std::vector<double> data;
+    try {
+      auto tmp = imu->read();
+      data.swap(tmp);
+    } catch (const std::exception& e) {
+      data.resize(0);
+    }
+
     if (data.empty()) {
       return nullptr;
     }
