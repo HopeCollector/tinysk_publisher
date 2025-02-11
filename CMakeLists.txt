@@ -27,9 +27,11 @@ CPMGetPackage(cppzmq)
 # 本地第三方依赖
 CPMAddPackage(NAME imu URL ${driver_dir}/imu.tar.gz)
 CPMAddPackage(NAME Camera URL ${driver_dir}/camera.tar.gz)
+CPMAddPackage(URL ${driver_dir}/xtsdk.tar.gz)
 
 # 本地系统依赖
 find_package(CapnProto CONFIG REQUIRED)
+find_package(PCL REQUIRED COMPONENTS common)
 
 # ---- Create library ----
 add_subdirectory(messages)
