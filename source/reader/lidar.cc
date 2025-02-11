@@ -80,17 +80,18 @@ namespace tskpub {
 
   void LidarReader::Impl::eventCallback(
       const std::shared_ptr<XinTan::CBEventData> &event) {
-    Log::info("event: " + event->eventstr + " " + std::to_string(event->cmdid));
+    Log::debug("event: " + event->eventstr + " "
+               + std::to_string(event->cmdid));
     if (event->eventstr == "sdkState") {
       // 端口打开后第一次连接上设备
       if (xtsdk->isconnect() && (event->cmdid == 0xfe)) {
         xtsdk->stop();
         XinTan::RespDevInfo devinfo;
         xtsdk->getDevInfo(devinfo);
-        std::cout << std::endl << devinfo.fwVersion.c_str() << std::endl;
-        std::cout << devinfo.sn.c_str() << devinfo.chipidStr << std::endl;
 
-        Log::info("DEV SN=" + devinfo.sn);
+        Log::debug(devinfo.fwVersion.c_str());
+        Log::debug(devinfo.sn.c_str() + devinfo.chipidStr);
+        Log::debug("DEV SN=" + devinfo.sn);
 
         xtsdk->setModFreq(
             (XinTan::ModulationFreq)params.device.frequency_modulation);
@@ -102,18 +103,18 @@ namespace tskpub {
         xtsdk->setCutCorner(params.device.cut_corner);
         xtsdk->start((XinTan::ImageType)params.device.imgType);
       }
-      Log::info("sdkstate= " + xtsdk->getStateStr());
+      Log::debug("sdkstate= " + xtsdk->getStateStr());
     } else if (event->eventstr == "devState") {
-      Log::info("devstate= " + xtsdk->getStateStr());
+      Log::debug("devstate= " + xtsdk->getStateStr());
     } else {
       if (event->cmdid == XinTan::REPORT_LOG)  // log
       {
         std::string logdata;
         logdata.assign(event->data.begin(), event->data.end());
-        Log::info("log: " + logdata);
+        Log::debug("log: " + logdata);
       }
-      Log::info("event: " + event->eventstr
-                + " cmd=" + std::to_string(event->cmdid));
+      Log::debug("event: " + event->eventstr
+                 + " cmd=" + std::to_string(event->cmdid));
     }
   }
 
