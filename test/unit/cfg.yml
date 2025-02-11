@@ -1,7 +1,7 @@
 log:
   filename: stderr
   # 0: trace, 1: debug, 2: info, 3: warn, 4: error, 5: critical, 6: off
-  loglevel: 0
+  level: 0
   pattern: "[%Y-%m-%d %H:%M:%S] [%L] [%P] [%T] %v"
 
 sensors: [status, imu, video0, laser]
