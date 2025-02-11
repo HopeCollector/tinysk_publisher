@@ -13,7 +13,7 @@ CPMGetPackage(spdlog)
 CPMGetPackage(fkYAML)
 CPMAddPackage(NAME imu URL ${driver_dir}/imu.tar.gz)
 CPMAddPackage(NAME Camera URL ${driver_dir}/camera.tar.gz)
-CPMAddPackage(URL ${driver_dir}/xtsdk.tar.gz)
+CPMAddPackage(NAME lidar URL ${driver_dir}/xtsdk.tar.gz)
 CPMAddPackage("gh:doctest/doctest@2.4.11")
 find_package(PCL REQUIRED COMPONENTS common)
 

@@ -14,14 +14,3 @@ target_include_directories(messages PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
     $<INSTALL_INTERFACE:include/${PROJECT_NAME}-${PROJECT_VERSION}/msg>
 )
-
-# install the `messages` library
-packageProject(
-    NAME messages
-    VERSION ${PROJECT_VERSION}
-    NAMESPACE ${PROJECT_NAME}
-    BINARY_DIR ${PROJECT_BINARY_DIR}
-    INCLUDE_DIR ${CMAKE_CURRENT_BINARY_DIR}
-    INCLUDE_DESTINATION include/${PROJECT_NAME}-${PROJECT_VERSION}
-    DEPENDENCIES "CapnProto 1.1.0"
-)
