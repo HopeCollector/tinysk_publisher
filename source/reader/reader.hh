@@ -108,4 +108,23 @@ namespace tskpub {
     std::unique_ptr<Impl> impl_;
   };
 
+  class LidarReader final : public Reader, public ReaderRegistor<LidarReader> {
+  public:
+    using Ptr = std::shared_ptr<LidarReader>;
+    using ConstPtr = std::shared_ptr<const LidarReader>;
+    LidarReader() = delete;
+    LidarReader(LidarReader&) = delete;
+    LidarReader(const LidarReader&) = delete;
+    LidarReader& operator=(LidarReader&) = delete;
+    LidarReader(std::string sensor_name);
+    virtual ~LidarReader();
+    Data::ConstPtr read() override;
+    MsgPtr package_data(const void* data);
+    static const char* msg_type() noexcept { return "PointCloud"; }
+
+  private:
+    struct Impl;
+    std::unique_ptr<Impl> impl_;
+  };
+
 }  // namespace tskpub
