@@ -2,12 +2,14 @@
 
 #include <TSKPub/msg/image.capnp.h>
 #include <TSKPub/msg/imu.capnp.h>
+#include <TSKPub/msg/point_cloud.capnp.h>
 #include <TSKPub/msg/status.capnp.h>
 #include <capnp/serialize-packed.h>
 #include <doctest/doctest.h>
 #include <sys/stat.h>
 
 #include <string>
+#include <thread>
 
 #include "cfg.yml.hh"
 #include "common.hh"
@@ -53,7 +55,7 @@ namespace {
     }
   };
 
-  bool does_camera_device_exist(const std::string &device_path) {
+  bool is_device_exist(const std::string &device_path) {
     struct stat buffer;
     return (stat(device_path.c_str(), &buffer) == 0);
   }
@@ -121,7 +123,7 @@ TEST_CASE("IMU Reader encode test") {
 
 TEST_CASE("Camera Reader read test") {
   Fixture f{config_file};
-  REQUIRE(does_camera_device_exist("/dev/video0"));
+  REQUIRE(is_device_exist("/dev/video0"));
 
   auto cam = f.create_reader<tskpub::CameraReader>("video0");
   auto msg = cam->read();
@@ -144,4 +146,58 @@ TEST_CASE("Camera Reader read test") {
   const auto &data = image.getData();
   CHECK(data[0] == 0xff);
   CHECK(data[1] == 0xd8);
+}
+
+TEST_CASE("Lidar Read Once Test") {
+  Fixture f{config_file};
+  REQUIRE(is_device_exist(f.yaml()["laser"]["port"].get_value<std::string>()));
+
+  auto lreader = f.create_reader<tskpub::LidarReader>("laser");
+  tskpub::Data::ConstPtr msg{nullptr};
+  while (!msg) {
+    std::this_thread::sleep_for(std::chrono::microseconds(100));
+    msg = lreader->read();
+  }
+  CHECK((msg != nullptr));
+
+  CapnpMsg<PointCloud> capnpmsg(msg->data);
+  auto &cloud = capnpmsg.root;
+  CHECK(cloud.hasTopic());
+  CHECK(cloud.getTopic().size() > 0);
+  CHECK(std::string(cloud.getTopic().cStr()) == "/tinysk/laser");
+  CHECK(cloud.getTimestamp() > 0);
+
+  auto points = cloud.getPoints();
+  CHECK(points.size() > 1000);
+}
+
+TEST_CASE("Lidar Read Stream Test") {
+  Fixture f{config_file};
+  REQUIRE(is_device_exist(f.yaml()["laser"]["port"].get_value<std::string>()));
+
+  auto lreader = f.create_reader<tskpub::LidarReader>("laser");
+
+  // wait for the first message
+  tskpub::Data::ConstPtr msg{nullptr};
+  while (!msg) {
+    std::this_thread::sleep_for(std::chrono::microseconds(100));
+    msg = lreader->read();
+  }
+  CHECK((msg != nullptr));
+
+  // fast read next mybe empty
+  lreader->read();
+  CHECK((lreader->read() == nullptr));
+
+  // read at 10hz for 20 times
+  std::this_thread::sleep_for(std::chrono::seconds(1));
+  int cnt = 0;
+  for (int i = 0; i < 20; ++i) {
+    msg = lreader->read();
+    if (msg) {
+      ++cnt;
+    }
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+  }
+  CHECK(cnt > 17);
 }
