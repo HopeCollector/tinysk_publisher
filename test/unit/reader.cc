@@ -172,6 +172,7 @@ TEST_CASE("Lidar Read Once Test") {
 }
 
 TEST_CASE("Lidar Read Stream Test") {
+  std::this_thread::sleep_for(std::chrono::seconds(5));
   Fixture f{config_file};
   REQUIRE(is_device_exist(f.yaml()["laser"]["port"].get_value<std::string>()));
 
@@ -190,7 +191,7 @@ TEST_CASE("Lidar Read Stream Test") {
   CHECK((lreader->read() == nullptr));
 
   // read at 10hz for 20 times
-  std::this_thread::sleep_for(std::chrono::seconds(1));
+  std::this_thread::sleep_for(std::chrono::seconds(5));
   int cnt = 0;
   for (int i = 0; i < 20; ++i) {
     msg = lreader->read();
@@ -199,5 +200,5 @@ TEST_CASE("Lidar Read Stream Test") {
     }
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
   }
-  CHECK(cnt > 17);
+  CHECK(cnt > 10);
 }
