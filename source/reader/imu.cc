@@ -33,6 +33,7 @@ namespace {
     }
 
     std::vector<double> read() {
+      hipnuc_raw_t hipnuc_raw{0};
       // Read data from serial port
       int len = serial_port_read(fd, buffer.data(), buffer.size());
       if (len <= 0) {
@@ -68,7 +69,6 @@ namespace {
 
     int fd;
     std::array<char, 1024> buffer;
-    hipnuc_raw_t hipnuc_raw;
   };
 
   IMU::Ptr imu{nullptr};
