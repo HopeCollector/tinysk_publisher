@@ -52,18 +52,24 @@ namespace tskpub {
   struct LidarReader::Impl {
     std::unique_ptr<XinTan::XtSdk> xtsdk{nullptr};
     Cld::ConstPtr cld{nullptr};
+    std::string port;
     Params params;
 
-    Impl() : xtsdk(new XinTan::XtSdk()) {}
-
     ~Impl() {
-      if (xtsdk) {
+      if (xtsdk && xtsdk->isconnect()) {
         xtsdk->stop();
+        xtsdk->setCallback();
         xtsdk->shutdown();
       }
     }
 
-    Cld::ConstPtr read() const {
+    // copy from sdk_example.cpp
+    void eventCallback(const std::shared_ptr<XinTan::CBEventData> &event);
+    void imgCallback(const std::shared_ptr<XinTan::Frame> &imgframe);
+    void init();
+
+    Cld::ConstPtr read() {
+      if (!xtsdk) init();
       static Cld::ConstPtr prev_cld = nullptr;
       if (cld == prev_cld) {
         return nullptr;
@@ -71,11 +77,6 @@ namespace tskpub {
       prev_cld = cld;
       return cld;
     }
-
-    // copy from sdk_example.cpp
-    void eventCallback(const std::shared_ptr<XinTan::CBEventData> &event);
-
-    void imgCallback(const std::shared_ptr<XinTan::Frame> &imgframe);
   };
 
   void LidarReader::Impl::eventCallback(
@@ -137,6 +138,28 @@ namespace tskpub {
     cld = ret;
   }
 
+  void LidarReader::Impl::init() {
+    xtsdk = std::make_unique<XinTan::XtSdk>();
+    auto &dev = params.device;
+    auto &flt = params.filter;
+    if (XinTan::Utils::isComport(port)) {
+      xtsdk->setConnectSerialportName(port);
+    }
+    xtsdk->setSdkCloudCoordType(
+        static_cast<XinTan::ClOUDCOORD_TYPE>(dev.cloud_coord));
+    xtsdk->setCallback([this](auto event) { eventCallback(event); },
+                       [this](auto frame) { imgCallback(frame); });
+    if (flt.edgeEnable) xtsdk->setSdkEdgeFilter(flt.edgeThreshold);
+    if (flt.kalmanEnable)  // 卡尔曼滤波
+      xtsdk->setSdkKalmanFilter(flt.kalmanFactor * 1000, flt.kalmanThreshold,
+                                2000);
+    if (flt.medianSize > 0)  // 中值滤波
+      xtsdk->setSdkMedianFilter(flt.medianSize);
+    if (flt.dustEnable)  // 尘点滤波
+      xtsdk->setSdkDustFilter(flt.dustThreshold, flt.dustFrames);
+    xtsdk->startup();
+  }
+
   LidarReader::LidarReader(std::string sensor_name)
       : Reader(sensor_name), impl_(std::make_unique<Impl>()) {
     auto &dev = impl_->params.device;
@@ -169,41 +192,9 @@ namespace tskpub {
     flt.dustThreshold = fcfg["dustThreshold"].get_value<int>();
     flt.dustFrames = fcfg["dustFrames"].get_value<int>();
 
-    auto port = GlobalParams::get_instance()
-                    .yml[sensor_name]["port"]
-                    .get_value<std::string>();
-    if (XinTan::Utils::isComport(port)) {
-      impl_->xtsdk->setConnectSerialportName(port);
-    }
-
-    impl_->xtsdk->setSdkCloudCoordType(
-        static_cast<XinTan::ClOUDCOORD_TYPE>(dev.cloud_coord));
-
-    impl_->xtsdk->setCallback(
-        [this](auto event) { impl_->eventCallback(event); },
-        [this](auto frame) { impl_->imgCallback(frame); });
-
-    if (flt.edgeEnable) {
-      impl_->xtsdk->setSdkEdgeFilter(flt.edgeThreshold);
-    }
-
-    // 卡尔曼滤波
-    if (flt.kalmanEnable) {
-      impl_->xtsdk->setSdkKalmanFilter(flt.kalmanFactor * 1000,
-                                       flt.kalmanThreshold, 2000);
-    }
-
-    // 中值滤波
-    if (flt.medianSize > 0) {
-      impl_->xtsdk->setSdkMedianFilter(flt.medianSize);
-    }
-
-    // 尘点滤波
-    if (flt.dustEnable) {
-      impl_->xtsdk->setSdkDustFilter(flt.dustThreshold, flt.dustFrames);
-    }
-
-    impl_->xtsdk->startup();
+    impl_->port = GlobalParams::get_instance()
+                      .yml[sensor_name]["port"]
+                      .get_value<std::string>();
   }
 
   LidarReader::~LidarReader() {}
