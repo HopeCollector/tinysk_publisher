@@ -42,7 +42,7 @@ namespace tskpub {
   };
 
   template <typename T> struct ReaderRegistor {
-    static bool regist() {
+    static bool regist() __attribute__((used)) {
       return ReaderFactory::regist(T::msg_type(), [](std::string sensor_name) {
         return std::make_shared<T>(sensor_name);
       });
