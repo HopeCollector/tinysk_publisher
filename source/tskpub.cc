@@ -38,7 +38,8 @@ namespace tskpub {
       Log::critical("No reader for sensor: " + sensor_name);
       return nullptr;
     }
-    return it->second->read()->msg();
+    auto payload = it->second->read();
+    return payload ? payload->msg() : nullptr;
   }
 
   void *TSKPub::get_reader(const std::string &sensor_name) const {
