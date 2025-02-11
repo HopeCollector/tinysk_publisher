@@ -54,6 +54,8 @@ namespace tskpub {
     Cld::ConstPtr cld{nullptr};
     Params params;
 
+    Impl() : xtsdk(new XinTan::XtSdk()) {}
+
     ~Impl() {
       if (xtsdk) {
         xtsdk->stop();
@@ -62,11 +64,11 @@ namespace tskpub {
     }
 
     Cld::ConstPtr read() const {
-      static auto ret = cld;
-      if (ret == cld) {
+      static Cld::ConstPtr prev_cld = nullptr;
+      if (cld == prev_cld) {
         return nullptr;
       }
-      ret = cld;
+      prev_cld = cld;
       return cld;
     }
 
@@ -78,14 +80,10 @@ namespace tskpub {
 
   void LidarReader::Impl::eventCallback(
       const std::shared_ptr<XinTan::CBEventData> &event) {
-    std::cout << "event: " + event->eventstr + " "
-                     + std::to_string(event->cmdid)
-              << std::endl;
-
+    Log::info("event: " + event->eventstr + " " + std::to_string(event->cmdid));
     if (event->eventstr == "sdkState") {
-      if (xtsdk->isconnect()
-          && (event->cmdid == 0xfe))  // 端口打开后第一次连接上设备
-      {
+      // 端口打开后第一次连接上设备
+      if (xtsdk->isconnect() && (event->cmdid == 0xfe)) {
         xtsdk->stop();
         XinTan::RespDevInfo devinfo;
         xtsdk->getDevInfo(devinfo);
@@ -121,8 +119,14 @@ namespace tskpub {
 
   void LidarReader::Impl::imgCallback(
       const std::shared_ptr<XinTan::Frame> &imgframe) {
+    if (imgframe->points.empty()) {
+      cld.reset();
+      return;
+    }
+
     Cld::Ptr ret(new Cld);
     ret->resize(3000);
+    ret->header.stamp = imgframe->timeStampS * 1e9 + imgframe->timeStampNS;
     for (size_t i = 0; i < ret->size(); i++) {
       ret->points[i].x = imgframe->points[i].x;
       ret->points[i].y = imgframe->points[i].y;
@@ -147,7 +151,7 @@ namespace tskpub {
     dev.minLSB = dcfg["minLSB"].get_value<int>();
     dev.cut_corner = dcfg["cut_corner"].get_value<int>();
     dev.start_stream = dcfg["start_stream"].get_value<bool>();
-    dev.connect_address = dcfg["connect_address"].get_value<std::string>();
+    // dev.connect_address = dcfg["connect_address"].get_value<std::string>();
     dev.maxfps = dcfg["maxfps"].get_value<int>();
     dev.hmirror = dcfg["hmirror"].get_value<bool>();
     dev.vmirror = dcfg["vmirror"].get_value<bool>();
@@ -168,7 +172,7 @@ namespace tskpub {
                     .yml[sensor_name]["port"]
                     .get_value<std::string>();
     if (XinTan::Utils::isComport(port)) {
-      impl_->xtsdk->setConnectIpaddress(port);
+      impl_->xtsdk->setConnectSerialportName(port);
     }
 
     impl_->xtsdk->setSdkCloudCoordType(
@@ -217,7 +221,7 @@ namespace tskpub {
     auto builder = capnp::MallocMessageBuilder();
     auto msg = builder.initRoot<PointCloud>();
     msg.setTopic(topic_);
-    msg.setTimestamp(nano_now());
+    msg.setTimestamp(cld->header.stamp);
     auto points = msg.initPoints(cld->size());
     for (size_t i = 0; i < cld->size(); i++) {
       points[i].setX(cld->points[i].x);
