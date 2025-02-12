@@ -1,43 +1,73 @@
 #include <spdlog/spdlog.h>
 
 #include <TSKPub/tskpub.hh>
+#include <atomic>
+#include <chrono>
+#include <csignal>
 #include <cxxopts.hpp>
+#include <deque>
 #include <fkYAML/node.hpp>
 #include <fstream>
 #include <functional>
 #include <memory>
+#include <thread>
 #include <unordered_map>
 
-#define INFO(...) SPDLOG_LOGGER_INFO(impl->logger, __VA_ARGS__)
-#define WARN(...) SPDLOG_LOGGER_WARN(impl->logger, __VA_ARGS__)
-#define ERROR(...) SPDLOG_LOGGER_ERROR(impl->logger, __VA_ARGS__)
+#define INFO(...) SPDLOG_LOGGER_INFO(logger, __VA_ARGS__)
+#define WARN(...) SPDLOG_LOGGER_WARN(logger, __VA_ARGS__)
+#define ERROR(...) SPDLOG_LOGGER_ERROR(logger, __VA_ARGS__)
 
-struct Impl {
-  using Ptr = std::unique_ptr<Impl>;
-  using Callback = std::function<void(const std::string&)>;
-  std::unordered_map<std::string, Callback> type_cb_map;
-  std::unique_ptr<tskpub::TSKPub> pub;
-  fkyaml::node params;
-  std::shared_ptr<spdlog::logger> logger;
-  std::string config_file_path;
-  Impl() = delete;
-  Impl(const std::string& config_path);
-  void init();
-  void status_cb(const std::string& sensor_name);
-  void imu_cb(const std::string& sensor_name);
-  void camera_cb(const std::string& sensor_name);
-  void lidar_cb(const std::string& sensor_name);
-};
+namespace {
+  std::shared_ptr<spdlog::logger> logger{nullptr};
+
+  struct Rate {
+    size_t interval;
+    std::chrono::time_point<std::chrono::system_clock> last_call;
+
+    Rate(int rate)
+        : interval(size_t(1000 / rate)),
+          last_call(std::chrono::system_clock::now()) {}
+
+    void sleep() {
+      auto now = std::chrono::system_clock::now();
+      auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+                         now - last_call)
+                         .count();
+      if (elapsed < interval) {
+        std::this_thread::sleep_for(
+            std::chrono::milliseconds(interval - elapsed));
+      }
+      last_call = now;
+    }
+  };
+
+  struct Impl {
+    using Ptr = std::unique_ptr<Impl>;
+    std::unique_ptr<tskpub::TSKPub> pub;
+    fkyaml::node params;
+    std::string config_file_path;
+    std::atomic<bool> is_running{true};
+    std::deque<std::thread> threads;
+    Impl() = delete;
+    Impl(const std::string& config_path);
+    ~Impl();
+    void init();
+    void run();
+  };
+}  // namespace
 
 Impl::Impl(const std::string& config_path)
-    : pub(nullptr), logger(nullptr), config_file_path(config_path) {
-  type_cb_map = std::unordered_map<std::string, Callback>{
-      {"Status", std::bind(&Impl::status_cb, this, std::placeholders::_1)},
-      {"Imu", std::bind(&Impl::imu_cb, this, std::placeholders::_1)},
-      {"Camera", std::bind(&Impl::camera_cb, this, std::placeholders::_1)},
-      {"Lidar", std::bind(&Impl::lidar_cb, this, std::placeholders::_1)}};
+    : pub(nullptr), config_file_path(config_path) {
   std::ifstream config_file(config_path);
   params = fkyaml::node::deserialize(config_file);
+}
+
+Impl::~Impl() {
+  WARN("Destroying Impl");
+  is_running = false;
+  std::for_each(threads.begin(), threads.end(),
+                std::mem_fn(&std::thread::join));
+  spdlog::drop(logger->name());
 }
 
 void Impl::init() {
@@ -53,20 +83,24 @@ void Impl::init() {
   }
 }
 
-void Impl::status_cb(const std::string& sensor_name) {
-  logger->info("Status callback for sensor: {}", sensor_name);
-}
-
-void Impl::imu_cb(const std::string& sensor_name) {
-  logger->info("Imu callback for sensor: {}", sensor_name);
-}
-
-void Impl::camera_cb(const std::string& sensor_name) {
-  logger->info("Camera callback for sensor: {}", sensor_name);
-}
-
-void Impl::lidar_cb(const std::string& sensor_name) {
-  logger->info("Lidar callback for sensor: {}", sensor_name);
+void Impl::run() {
+  auto sensors = params["sensors"].get_value<std::vector<std::string>>();
+  for (const auto& name : sensors) {
+    threads.emplace_back([&]() {
+      Rate r(params[name]["rate"].get_value<size_t>());
+      while (is_running) {
+        auto msg = pub->read(name);
+        if (msg) {
+          SPDLOG_LOGGER_INFO(logger, "Read {} bytes from {}", msg->size(),
+                             name);
+        }
+        r.sleep();
+      }
+    });
+  }
+  while (is_running) {
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+  }
 }
 
 auto parse_args(int argc, char** argv) {
@@ -80,12 +114,22 @@ auto parse_args(int argc, char** argv) {
   // clang-format on
 }
 
+void signal_handler(int signal) {
+  if (signal == SIGINT || signal == SIGTERM) {
+    WARN("Received signal {}", strsignal(signal));
+  }
+}
+
+void setup_signal_handlers() {
+  std::signal(SIGINT, signal_handler);
+  std::signal(SIGTERM, signal_handler);
+}
+
 int main(int argc, char** argv) {
   auto result = parse_args(argc, argv);
   Impl::Ptr impl{new Impl(result["config"].as<std::string>())};
   impl->init();
-  INFO("Info log ok");
-  WARN("Warn log ok");
-  ERROR("Error log ok");
+  setup_signal_handlers();
+  impl->run();
   return 0;
 }
