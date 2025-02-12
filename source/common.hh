@@ -33,7 +33,7 @@ namespace tskpub {
     MsgConstPtr msg() const { return data; }
 
     const uint8_t* begin() { return data->data(); }
-    size_t size() { return data->size(); }
+    size_t size() const { return data->size(); }
     MsgPtr data;
   };
 
