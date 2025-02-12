@@ -32,7 +32,7 @@ namespace {
 namespace tskpub {
   struct StatusReader::Impl {
     std::string cmd;
-    const std::atomic<uint64_t>* total_read_bytes;
+    std::atomic<uint64_t>* total_read_bytes;
   };
 
   StatusReader::StatusReader(std::string sensor_name)
@@ -62,6 +62,7 @@ namespace tskpub {
     status.setBatteryCurrent(std::stod(results[4]));
     status.setIp(results[5]);
     status.setTotalReadBytes(impl_->total_read_bytes->load());
+    impl_->total_read_bytes->store(0);
     kj::VectorOutputStream output_stream;
     capnp::writePackedMessage(output_stream, message);
     auto buffer = output_stream.getArray();
