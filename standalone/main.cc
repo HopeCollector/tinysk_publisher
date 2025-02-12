@@ -10,8 +10,10 @@
 #include <fstream>
 #include <functional>
 #include <memory>
+#include <mutex>
 #include <thread>
 #include <unordered_map>
+#include <zmq.hpp>
 
 #define DEBUG(...) SPDLOG_LOGGER_DEBUG(logger, __VA_ARGS__)
 #define INFO(...) SPDLOG_LOGGER_INFO(logger, __VA_ARGS__)
@@ -21,6 +23,21 @@
 namespace {
   std::shared_ptr<spdlog::logger> logger{nullptr};
   std::atomic<bool> is_running{true};
+
+  struct Publisher {
+    using Ptr = std::unique_ptr<Publisher>;
+    zmq::context_t context;
+    zmq::socket_t socket;
+    std::string address;
+    std::thread job;
+    std::deque<tskpub::MsgConstPtr> queue;
+    std::mutex qmtx;
+    Publisher() = delete;
+    Publisher(const std::string& address);
+    ~Publisher();
+    void publish(tskpub::MsgConstPtr msg);
+    void work();
+  };
 
   struct Rate {
     size_t interval;
@@ -49,6 +66,7 @@ namespace {
     fkyaml::node params;
     std::string config_file_path;
     std::deque<std::thread> threads;
+    Publisher::Ptr socket;
     Impl() = delete;
     Impl(const std::string& config_path);
     ~Impl();
@@ -57,8 +75,47 @@ namespace {
   };
 }  // namespace
 
+Publisher::Publisher(const std::string& address)
+    : context(),
+      socket(context, zmq::socket_type::pub),
+      address(address),
+      job(&Publisher::work, this) {
+  socket.set(zmq::sockopt::conflate, 1);
+  socket.bind(address);
+}
+
+Publisher::~Publisher() {
+  job.join();
+  socket.close();
+  context.close();
+}
+
+void Publisher::publish(tskpub::MsgConstPtr payload) {
+  std::lock_guard<std::mutex> lock(qmtx);
+  queue.push_back(payload);
+}
+
+void Publisher::work() {
+  while (is_running) {
+    while (queue.empty()) {
+      std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    }
+
+    std::deque<tskpub::MsgConstPtr> buffer;
+    {
+      std::lock_guard<std::mutex> lock(qmtx);
+      buffer.swap(queue);
+    }
+
+    std::for_each(buffer.begin(), buffer.end(), [&](tskpub::MsgConstPtr& msg) {
+      zmq::const_buffer buf(msg->data(), msg->size());
+      socket.send(buf, zmq::send_flags::none);
+    });
+  }
+}
+
 Impl::Impl(const std::string& config_path)
-    : pub(nullptr), config_file_path(config_path) {
+    : pub(nullptr), config_file_path(config_path), socket(nullptr) {
   std::ifstream config_file(config_path);
   params = fkyaml::node::deserialize(config_file);
 }
@@ -82,6 +139,8 @@ void Impl::init() {
   if (!logger) {
     throw std::runtime_error("Logger not initialized");
   }
+  socket = std::make_unique<Publisher>(
+      params["app"]["address"].get_value<std::string>());
 }
 
 void Impl::run() {
@@ -93,6 +152,7 @@ void Impl::run() {
         auto msg = pub->read(name);
         if (msg) {
           DEBUG("Read {} bytes from {}", msg->size(), name);
+          socket->publish(msg);
         }
         r.sleep();
       }
