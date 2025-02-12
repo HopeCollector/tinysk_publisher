@@ -155,7 +155,7 @@ TEST_CASE("Lidar Read Once Test") {
   auto lreader = f.create_reader<tskpub::LidarReader>("laser");
   tskpub::Data::ConstPtr msg{nullptr};
   while (!msg) {
-    std::this_thread::sleep_for(std::chrono::microseconds(100));
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
     msg = lreader->read();
   }
   CHECK((msg != nullptr));
@@ -181,7 +181,7 @@ TEST_CASE("Lidar Read Stream Test") {
   // wait for the first message
   tskpub::Data::ConstPtr msg{nullptr};
   while (!msg) {
-    std::this_thread::sleep_for(std::chrono::microseconds(100));
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
     msg = lreader->read();
   }
   CHECK((msg != nullptr));
