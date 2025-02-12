@@ -20,6 +20,7 @@
 
 namespace {
   std::shared_ptr<spdlog::logger> logger{nullptr};
+  std::atomic<bool> is_running{true};
 
   struct Rate {
     size_t interval;
@@ -47,7 +48,6 @@ namespace {
     std::unique_ptr<tskpub::TSKPub> pub;
     fkyaml::node params;
     std::string config_file_path;
-    std::atomic<bool> is_running{true};
     std::deque<std::thread> threads;
     Impl() = delete;
     Impl(const std::string& config_path);
@@ -117,6 +117,7 @@ auto parse_args(int argc, char** argv) {
 void signal_handler(int signal) {
   if (signal == SIGINT || signal == SIGTERM) {
     WARN("Received signal {}", strsignal(signal));
+    is_running = false;
   }
 }
 
