@@ -26,6 +26,7 @@ CPMGetPackage(cppzmq)
 set(dep_list "spdlog 1.8.5" "fkYAML 0.4.1" "cppzmq 4.10.0")
 
 # 本地第三方依赖
+set(driver_dir ${CMAKE_CURRENT_LIST_DIR}/drivers)
 CPMAddPackage(NAME imu URL ${driver_dir}/imu.tar.gz)
 CPMAddPackage(NAME Camera URL ${driver_dir}/camera.tar.gz)
 CPMAddPackage(NAME lidar URL ${driver_dir}/lidar.tar.gz)
