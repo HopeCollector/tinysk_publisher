@@ -52,6 +52,9 @@ namespace tskpub {
 
     // get the status of the system
     auto results = split(exec(impl_->cmd.c_str()), ';');
+    if (results.size() != 6) {
+      return nullptr;
+    }
     status.setCpuUsage(std::stod(results[0]));
     status.setCpuTemp(std::stod(results[1]));
     status.setMemUsage(std::stod(results[2]));
