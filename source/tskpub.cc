@@ -39,6 +39,8 @@ namespace tskpub {
       return nullptr;
     }
     auto payload = it->second->read();
+    GlobalParams::get_instance().total_read_bytes
+        += payload ? payload->size() : 0;
     return payload ? payload->msg() : nullptr;
   }
 }  // namespace tskpub
