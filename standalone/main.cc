@@ -13,6 +13,7 @@
 #include <thread>
 #include <unordered_map>
 
+#define DEBUG(...) SPDLOG_LOGGER_DEBUG(logger, __VA_ARGS__)
 #define INFO(...) SPDLOG_LOGGER_INFO(logger, __VA_ARGS__)
 #define WARN(...) SPDLOG_LOGGER_WARN(logger, __VA_ARGS__)
 #define ERROR(...) SPDLOG_LOGGER_ERROR(logger, __VA_ARGS__)
@@ -91,8 +92,7 @@ void Impl::run() {
       while (is_running) {
         auto msg = pub->read(name);
         if (msg) {
-          SPDLOG_LOGGER_INFO(logger, "Read {} bytes from {}", msg->size(),
-                             name);
+          DEBUG("Read {} bytes from {}", msg->size(), name);
         }
         r.sleep();
       }
