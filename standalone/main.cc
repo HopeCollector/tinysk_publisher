@@ -1,3 +1,4 @@
+#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_DEBUG
 #include <spdlog/spdlog.h>
 
 #include <TSKPub/tskpub.hh>
@@ -141,6 +142,7 @@ void Impl::init() {
   }
   socket = std::make_unique<Publisher>(
       params["app"]["address"].get_value<std::string>());
+  INFO("App Start");
 }
 
 void Impl::run() {
