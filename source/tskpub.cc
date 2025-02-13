@@ -38,9 +38,8 @@ namespace tskpub {
       Log::critical("No reader for sensor: " + sensor_name);
       return nullptr;
     }
-    auto payload = it->second->read();
-    GlobalParams::get_instance().total_read_bytes
-        += payload ? payload->size() : 0;
-    return payload ? payload->msg() : nullptr;
+    auto msg = it->second->read();
+    GlobalParams::get_instance().total_read_bytes += msg ? msg->size() : 0;
+    return msg;
   }
 }  // namespace tskpub

@@ -18,6 +18,27 @@ namespace tskpub {
     params["type"].get_value_inplace(msg_type_);
   }
 
+  MsgPtr Reader::to_msg(capnp::MallocMessageBuilder& builder, size_t max_sz) {
+    size_t name_len = sensor_name_.size();
+    size_t prefix_len = 2 + name_len;
+    size_t capacity = prefix_len + max_sz;
+
+    // write sensor name
+    auto ret = std::make_shared<Msg>(capacity);
+    ret->at(0) = name_len & 0xff;
+    ret->at(1) = (name_len >> 8) & 0xff;
+    ret->insert(ret->begin() + 2, sensor_name_.begin(), sensor_name_.end());
+
+    // write message body
+    kj::ArrayPtr<kj::byte> array(&ret->at(prefix_len),
+                                 ret->size() - prefix_len);
+    kj::ArrayOutputStream out(array);
+    capnp::writePackedMessage(out, builder);
+    auto pkgsz = out.getArray().size();
+    ret->resize(prefix_len + pkgsz);
+    return ret;
+  }
+
   // *****************
   // * ReaderFactory *
   // *****************

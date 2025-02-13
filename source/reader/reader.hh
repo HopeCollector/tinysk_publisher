@@ -7,6 +7,10 @@
 
 #include "common.hh"
 
+namespace capnp {
+  class MallocMessageBuilder;
+}
+
 namespace tskpub {
   class Reader {
   public:
@@ -18,12 +22,14 @@ namespace tskpub {
     Reader& operator=(Reader&) = delete;
     Reader(std::string sensor_name);
     virtual ~Reader() = default;
-    virtual Data::ConstPtr read() = 0;
+    virtual MsgConstPtr read() = 0;
 
   protected:
     std::string topic_;
     std::string sensor_name_;
     std::string msg_type_;
+
+    MsgPtr to_msg(capnp::MallocMessageBuilder& builder, size_t max_sz);
   };
 
   class ReaderFactory {
@@ -64,7 +70,7 @@ namespace tskpub {
     StatusReader& operator=(StatusReader&) = delete;
     StatusReader(std::string sensor_name);
     virtual ~StatusReader();
-    Data::ConstPtr read() override;
+    MsgConstPtr read() override;
     static const char* msg_type() noexcept { return "Status"; }
 
   private:
@@ -83,7 +89,7 @@ namespace tskpub {
     IMUReader(std::string sensor_name);
     virtual ~IMUReader();
     void open_device();
-    Data::ConstPtr read() override;
+    MsgConstPtr read() override;
     MsgPtr package_data(const std::vector<double>& data);
     static const char* msg_type() noexcept { return "Imu"; }
   };
@@ -99,7 +105,7 @@ namespace tskpub {
     CameraReader& operator=(CameraReader&) = delete;
     CameraReader(std::string sensor_name);
     virtual ~CameraReader();
-    Data::ConstPtr read() override;
+    MsgConstPtr read() override;
     MsgPtr package_data(const void* data);
     static const char* msg_type() noexcept { return "Image"; }
 
@@ -118,7 +124,7 @@ namespace tskpub {
     LidarReader& operator=(LidarReader&) = delete;
     LidarReader(std::string sensor_name);
     virtual ~LidarReader();
-    Data::ConstPtr read() override;
+    MsgConstPtr read() override;
     MsgPtr package_data(const void* data);
     static const char* msg_type() noexcept { return "PointCloud"; }
 

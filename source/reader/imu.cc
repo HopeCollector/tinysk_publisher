@@ -88,7 +88,7 @@ namespace tskpub {
                                 params["baud_rate"].get_value<uint64_t>());
   }
 
-  Data::ConstPtr IMUReader::read() {
+  MsgConstPtr IMUReader::read() {
     if (!imu) open_device();
     std::vector<double> data;
     try {
@@ -101,7 +101,7 @@ namespace tskpub {
     if (data.empty()) {
       return nullptr;
     }
-    return std::make_shared<Data>(package_data(data));
+    return package_data(data);
   }
 
   MsgPtr IMUReader::package_data(const std::vector<double>& data) {
@@ -123,12 +123,6 @@ namespace tskpub {
     orientation.setX(data[13]);
     orientation.setY(data[14]);
     orientation.setZ(data[15]);
-    // serialize & package message to uint8_t*
-    kj::VectorOutputStream output_stream;
-    capnp::writePackedMessage(output_stream, message);
-    auto buffer = output_stream.getArray();
-    MsgPtr ret = std::make_shared<Msg>(buffer.size());
-    ret->insert(ret->begin(), buffer.begin(), buffer.end());
-    return ret;
+    return to_msg(message, 1024);
   }
 }  // namespace tskpub

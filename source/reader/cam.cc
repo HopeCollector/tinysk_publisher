@@ -25,13 +25,12 @@ namespace tskpub {
 
   CameraReader::~CameraReader() {}
 
-  Data::ConstPtr CameraReader::read() {
+  MsgConstPtr CameraReader::read() {
     auto img = impl_->cam.capture();
     if (!img) {
       return nullptr;
     }
-    auto msg = package_data(reinterpret_cast<const void*>(img.get()));
-    return std::make_shared<Data>(msg);
+    return package_data(reinterpret_cast<const void*>(img.get()));
   }
 
   MsgPtr CameraReader::package_data(const void* data) {
@@ -48,13 +47,7 @@ namespace tskpub {
     kj::ArrayPtr<const kj::byte> data_ptr{
         reinterpret_cast<const kj::byte*>(img->data.data()), img->data.size()};
     image.setData(data_ptr);
-    // serialize & package message to uint8_t*
-    kj::VectorOutputStream output_stream;
-    capnp::writePackedMessage(output_stream, builder);
-    auto buffer = output_stream.getArray();
-    MsgPtr ret = std::make_shared<Msg>(buffer.size());
-    ret->insert(ret->begin(), buffer.begin(), buffer.end());
-    return ret;
+    return to_msg(builder, img->size + sizeof(camera::Image));
   }
 
 }  // namespace tskpub

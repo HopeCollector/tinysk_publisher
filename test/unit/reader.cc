@@ -8,6 +8,7 @@
 #include <doctest/doctest.h>
 #include <sys/stat.h>
 
+#include <optional>
 #include <string>
 #include <thread>
 
@@ -42,16 +43,20 @@ namespace {
 
   template <class T> struct CapnpMsg {
     using Reader = typename T::Reader;
+    std::string sensor_name;
     kj::ArrayPtr<const capnp::byte> segment;
-    kj::ArrayInputStream input_stream;
-    capnp::PackedMessageReader reader;
-    Reader root;
+    std::optional<kj::ArrayInputStream> input_stream{std::nullopt};
+    std::optional<capnp::PackedMessageReader> reader{std::nullopt};
+    std::optional<Reader> root{std::nullopt};
 
-    CapnpMsg(const tskpub::MsgConstPtr &msg)
-        : segment(msg->data(), msg->size()),
-          input_stream(segment),
-          reader(input_stream) {
-      root = reader.getRoot<T>();
+    CapnpMsg(const tskpub::MsgConstPtr &msg) {
+      uint16_t name_len = msg->at(0) | (msg->at(1) << 8);
+      sensor_name = std::string(msg->begin() + 2, msg->begin() + 2 + name_len);
+      segment = kj::ArrayPtr<const kj::byte>(msg->data() + 2 + name_len,
+                                             msg->size() - 2 - name_len);
+      input_stream.emplace(segment);
+      reader.emplace(*input_stream);
+      root = reader->getRoot<T>();
     }
   };
 
@@ -68,8 +73,8 @@ TEST_CASE("Status Reader read test") {
   auto msg = sreader->read();
   CHECK((msg != nullptr));
 
-  CapnpMsg<Status> capnpmsg(msg->data);
-  auto &status = capnpmsg.root;
+  CapnpMsg<Status> capnpmsg(msg);
+  auto &status = capnpmsg.root.value();
   CHECK(status.hasTopic());
   CHECK(status.getTopic().size() > 0);
   CHECK(std::string(status.getTopic().cStr()) == "/tinysk/status");
@@ -95,7 +100,7 @@ TEST_CASE("IMU Reader encode test") {
   CHECK(msg->size() > 0);
 
   CapnpMsg<Imu> capnpmsg(msg);
-  auto &imu = capnpmsg.root;
+  auto &imu = capnpmsg.root.value();
   CHECK(imu.hasTopic());
   CHECK(imu.getTopic().size() > 0);
   CHECK(std::string(imu.getTopic().cStr()) == "/tinysk/imu");
@@ -129,8 +134,8 @@ TEST_CASE("Camera Reader read test") {
   auto msg = cam->read();
   CHECK((msg != nullptr));
 
-  CapnpMsg<Image> capnpmsg(msg->data);
-  auto &image = capnpmsg.root;
+  CapnpMsg<Image> capnpmsg(msg);
+  auto &image = capnpmsg.root.value();
   CHECK(image.hasTopic());
   CHECK(image.getTopic().size() > 0);
   CHECK(std::string(image.getTopic().cStr()) == "/tinysk/video0");
@@ -153,15 +158,15 @@ TEST_CASE("Lidar Read Once Test") {
   REQUIRE(is_device_exist(f.yaml()["laser"]["port"].get_value<std::string>()));
 
   auto lreader = f.create_reader<tskpub::LidarReader>("laser");
-  tskpub::Data::ConstPtr msg{nullptr};
+  tskpub::MsgConstPtr msg{nullptr};
   while (!msg) {
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
     msg = lreader->read();
   }
   CHECK((msg != nullptr));
 
-  CapnpMsg<PointCloud> capnpmsg(msg->data);
-  auto &cloud = capnpmsg.root;
+  CapnpMsg<PointCloud> capnpmsg(msg);
+  auto &cloud = capnpmsg.root.value();
   CHECK(cloud.hasTopic());
   CHECK(cloud.getTopic().size() > 0);
   CHECK(std::string(cloud.getTopic().cStr()) == "/tinysk/laser");
@@ -179,7 +184,7 @@ TEST_CASE("Lidar Read Stream Test") {
   auto lreader = f.create_reader<tskpub::LidarReader>("laser");
 
   // wait for the first message
-  tskpub::Data::ConstPtr msg{nullptr};
+  tskpub::MsgConstPtr msg{nullptr};
   while (!msg) {
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
     msg = lreader->read();

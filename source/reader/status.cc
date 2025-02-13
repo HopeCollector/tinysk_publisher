@@ -44,7 +44,7 @@ namespace tskpub {
 
   StatusReader::~StatusReader() {}
 
-  Data::ConstPtr StatusReader::read() {
+  MsgConstPtr StatusReader::read() {
     capnp::MallocMessageBuilder message{1024};
     auto status = message.initRoot<Status>();
     status.setTopic(topic_);
@@ -63,11 +63,6 @@ namespace tskpub {
     status.setIp(results[5]);
     status.setTotalReadBytes(impl_->total_read_bytes->load());
     impl_->total_read_bytes->store(0);
-    kj::VectorOutputStream output_stream;
-    capnp::writePackedMessage(output_stream, message);
-    auto buffer = output_stream.getArray();
-    Data::Ptr data = std::make_shared<Data>(buffer.size());
-    data->append(static_cast<uint8_t*>(buffer.begin()), buffer.size());
-    return data;
+    return to_msg(message, 1024);
   }
 }  // namespace tskpub

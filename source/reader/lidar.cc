@@ -10,8 +10,8 @@
 #include "reader/reader.hh"
 
 namespace {
-  using Point = pcl::PointXYZI;
-  using Cld = pcl::PointCloud<Point>;
+  using PointT = pcl::PointXYZI;
+  using Cld = pcl::PointCloud<PointT>;
 
   struct DeviceParams {
     int imgType;
@@ -54,6 +54,7 @@ namespace tskpub {
     Cld::ConstPtr cld{nullptr};
     std::string port;
     Params params;
+    size_t cld_size;
 
     ~Impl() {
       if (xtsdk && xtsdk->isconnect()) {
@@ -192,25 +193,24 @@ namespace tskpub {
     flt.dustThreshold = fcfg["dustThreshold"].get_value<int>();
     flt.dustFrames = fcfg["dustFrames"].get_value<int>();
 
-    impl_->port = GlobalParams::get_instance()
-                      .yml[sensor_name]["port"]
-                      .get_value<std::string>();
+    auto &cfg = GlobalParams::get_instance().yml[sensor_name];
+    impl_->port = cfg["port"].get_value<std::string>();
+    impl_->cld_size = cfg["cloud_size"].get_value<size_t>();
   }
 
   LidarReader::~LidarReader() {}
 
-  Data::ConstPtr LidarReader::read() {
+  MsgConstPtr LidarReader::read() {
     auto cld = impl_->read();
     if (!cld) {
       return nullptr;
     }
-    auto msg = package_data(reinterpret_cast<const void *>(cld.get()));
-    return std::make_shared<Data>(msg);
+    return package_data(reinterpret_cast<const void *>(cld.get()));
   }
 
   MsgPtr LidarReader::package_data(const void *cld_ptr) {
     auto cld = reinterpret_cast<const Cld *>(cld_ptr);
-    auto builder = capnp::MallocMessageBuilder();
+    auto builder = capnp::MallocMessageBuilder(cld->size() * sizeof(PointT));
     auto msg = builder.initRoot<PointCloud>();
     msg.setTopic(topic_);
     msg.setTimestamp(cld->header.stamp);
@@ -221,11 +221,6 @@ namespace tskpub {
       points[i].setZ(cld->points[i].z);
       points[i].setI(cld->points[i].intensity);
     }
-    kj::VectorOutputStream output_stream;
-    capnp::writePackedMessage(output_stream, builder);
-    auto buffer = output_stream.getArray();
-    MsgPtr ret = std::make_shared<Msg>(buffer.size());
-    ret->insert(ret->begin(), buffer.begin(), buffer.end());
-    return ret;
+    return to_msg(builder, cld->size() * sizeof(PointT));
   }
 }  // namespace tskpub
