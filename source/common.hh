@@ -8,35 +8,6 @@
 #include "TSKPub/tskpub.hh"
 
 namespace tskpub {
-  struct Data {
-    using Ptr = std::shared_ptr<Data>;
-    using ConstPtr = std::shared_ptr<const Data>;
-    Data(size_t size) : data(new Msg) { data->reserve(size); }
-    Data(MsgPtr data) : data(data) {}
-
-    void resize(size_t size) { data->resize(size); }
-
-    void append(const uint8_t* src, size_t size) {
-      data->insert(data->end(), src, src + size);
-    }
-
-    void append(const std::string& src) {
-      data->insert(data->end(), src.begin(), src.end());
-    }
-
-    void append(const Data::ConstPtr src) {
-      data->insert(data->end(), src->data->begin(), src->data->end());
-    }
-
-    uint8_t* raw() { return data->data(); }
-
-    MsgConstPtr msg() const { return data; }
-
-    const uint8_t* begin() { return data->data(); }
-    size_t size() const { return data->size(); }
-    MsgPtr data;
-  };
-
   uint64_t nano_now();
 
   class Log {
