@@ -49,11 +49,10 @@ namespace {
     std::optional<capnp::PackedMessageReader> reader{std::nullopt};
     std::optional<Reader> root{std::nullopt};
 
-    CapnpMsg(const tskpub::MsgConstPtr &msg) {
-      uint16_t name_len = msg->at(0) | (msg->at(1) << 8);
-      sensor_name = std::string(msg->begin() + 2, msg->begin() + 2 + name_len);
-      segment = kj::ArrayPtr<const kj::byte>(msg->data() + 2 + name_len,
-                                             msg->size() - 2 - name_len);
+    CapnpMsg(const tskpub::MsgConstPtr &msg, const std::string &sensor_name)
+        : sensor_name(sensor_name) {
+      segment = kj::ArrayPtr<const kj::byte>(msg->data() + sensor_name.size(),
+                                             msg->size() - sensor_name.size());
       input_stream.emplace(segment);
       reader.emplace(*input_stream);
       root = reader->getRoot<T>();
@@ -73,7 +72,7 @@ TEST_CASE("Status Reader read test") {
   auto msg = sreader->read();
   CHECK((msg != nullptr));
 
-  CapnpMsg<Status> capnpmsg(msg);
+  CapnpMsg<Status> capnpmsg(msg, "status");
   auto &status = capnpmsg.root.value();
   CHECK(status.hasTopic());
   CHECK(status.getTopic().size() > 0);
@@ -99,7 +98,7 @@ TEST_CASE("IMU Reader encode test") {
   CHECK((msg != nullptr));
   CHECK(msg->size() > 0);
 
-  CapnpMsg<Imu> capnpmsg(msg);
+  CapnpMsg<Imu> capnpmsg(msg, "imu");
   auto &imu = capnpmsg.root.value();
   CHECK(imu.hasTopic());
   CHECK(imu.getTopic().size() > 0);
@@ -134,7 +133,7 @@ TEST_CASE("Camera Reader read test") {
   auto msg = cam->read();
   CHECK((msg != nullptr));
 
-  CapnpMsg<Image> capnpmsg(msg);
+  CapnpMsg<Image> capnpmsg(msg, "video0");
   auto &image = capnpmsg.root.value();
   CHECK(image.hasTopic());
   CHECK(image.getTopic().size() > 0);
@@ -165,7 +164,7 @@ TEST_CASE("Lidar Read Once Test") {
   }
   CHECK((msg != nullptr));
 
-  CapnpMsg<PointCloud> capnpmsg(msg);
+  CapnpMsg<PointCloud> capnpmsg(msg, "laser");
   auto &cloud = capnpmsg.root.value();
   CHECK(cloud.hasTopic());
   CHECK(cloud.getTopic().size() > 0);
