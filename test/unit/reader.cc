@@ -15,8 +15,12 @@
 #include "cfg.yml.hh"
 #include "common.hh"
 
+#ifndef CONFIG_FILE
+#  error "CONFIG_FILE macro must be defined"
+#endif
+
 namespace {
-  const std::string config_file{CFG_PATH};
+  const std::string config_file{CONFIG_FILE};
   struct Fixture {
     Fixture(const std::string &cfg_file) {
       tskpub::GlobalParams::get_instance().load_params(cfg_file);
