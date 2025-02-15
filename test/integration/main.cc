@@ -5,7 +5,6 @@
 #include <sys/stat.h>
 
 #include <TSKPub/tskpub.hh>
-#include <cfg.yml.hh>
 #include <fkYAML/node.hpp>
 #include <fstream>
 #include <iostream>

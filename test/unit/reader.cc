@@ -12,7 +12,6 @@
 #include <string>
 #include <thread>
 
-#include "cfg.yml.hh"
 #include "common.hh"
 
 #ifndef CONFIG_FILE
