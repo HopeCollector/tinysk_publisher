@@ -70,6 +70,18 @@ namespace {
   };
 }  // namespace
 
+TEST_CASE("Auto Register") {
+  Fixture f{config_file};
+  auto sreader = f.create_reader<tskpub::StatusReader>("info");
+  CHECK((sreader != nullptr));
+  auto ireader = f.create_reader<tskpub::IMUReader>("imu0");
+  CHECK((ireader != nullptr));
+  auto lreader = f.create_reader<tskpub::LidarReader>("laser");
+  CHECK((lreader != nullptr));
+  auto creader = f.create_reader<tskpub::CameraReader>("video");
+  CHECK((creader != nullptr));
+}
+
 TEST_CASE("Status Reader read test") {
   Fixture f{config_file};
   auto sreader = f.create_reader<tskpub::StatusReader>("status");
