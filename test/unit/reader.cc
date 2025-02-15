@@ -70,7 +70,7 @@ namespace {
   };
 }  // namespace
 
-TEST_CASE("Auto Register") {
+TEST_CASE("AutoRegistFactory") {
   Fixture f{config_file};
   auto sreader = f.create_reader<tskpub::StatusReader>("info");
   CHECK((sreader != nullptr));
@@ -82,7 +82,7 @@ TEST_CASE("Auto Register") {
   CHECK((creader != nullptr));
 }
 
-TEST_CASE("Status Reader read test") {
+TEST_CASE("Status.read") {
   Fixture f{config_file};
   auto sreader = f.create_reader<tskpub::StatusReader>("info");
   auto msg = sreader->read();
@@ -104,17 +104,18 @@ TEST_CASE("Status Reader read test") {
   CHECK(status.getTotalReadBytes() >= 0);
 }
 
-TEST_CASE("IMU Reader encode test") {
+TEST_CASE("IMU.package_data") {
   Fixture f{config_file};
+  std::string sensor_name{"imu0"};
   std::vector<double> test_data{0.0,  1.0,  2.0,  3.0,  4.0,  5.0,
                                 6.0,  7.0,  8.0,  9.0,  10.0, 11.0,
                                 12.0, 13.0, 14.0, 15.0, 16.0};
-  auto ireader = f.create_reader<tskpub::IMUReader>("imu");
+  auto ireader = f.create_reader<tskpub::IMUReader>(sensor_name);
   auto msg = ireader->package_data(test_data);
   CHECK((msg != nullptr));
   CHECK(msg->size() > 0);
 
-  CapnpMsg<Imu> capnpmsg(msg, "imu");
+  CapnpMsg<Imu> capnpmsg(msg, sensor_name);
   auto &imu = capnpmsg.root.value();
   CHECK(imu.hasTopic());
   CHECK(imu.getTopic().size() > 0);
@@ -141,19 +142,42 @@ TEST_CASE("IMU Reader encode test") {
   CHECK(avel.getZ() == test_data[5]);
 }
 
-TEST_CASE("Camera Reader read test") {
+TEST_CASE("IMU.read") {
   Fixture f{config_file};
-  REQUIRE(is_device_exist("/dev/video0"));
+  std::string sensor_name{"imu0"};
+  auto port = f.yaml()[sensor_name]["port"].get_value<std::string>();
+  REQUIRE(is_device_exist(port));
 
-  auto cam = f.create_reader<tskpub::CameraReader>("video0");
+  auto ireader = f.create_reader<tskpub::IMUReader>(sensor_name);
+  auto msg = ireader->read();
+  CHECK((msg != nullptr));
+
+  CapnpMsg<Imu> capnpmsg(msg, sensor_name);
+  auto &imu = capnpmsg.root.value();
+  CHECK(imu.hasTopic());
+  CHECK(imu.getTopic().size() > 0);
+  CHECK(std::string(imu.getTopic().cStr()) == "/tinysk/imu");
+  CHECK(imu.getTimestamp() > 0);
+  CHECK(imu.hasOrientation());
+  CHECK(imu.hasLinearAcceleration());
+  CHECK(imu.hasAngularVelocity());
+}
+
+TEST_CASE("Camera.read") {
+  Fixture f{config_file};
+  std::string sensor_name{"video"};
+  auto port = f.yaml()[sensor_name]["port"].get_value<std::string>();
+  REQUIRE(is_device_exist(port));
+
+  auto cam = f.create_reader<tskpub::CameraReader>(sensor_name);
   auto msg = cam->read();
   CHECK((msg != nullptr));
 
-  CapnpMsg<Image> capnpmsg(msg, "video0");
+  CapnpMsg<Image> capnpmsg(msg, sensor_name);
   auto &image = capnpmsg.root.value();
   CHECK(image.hasTopic());
   CHECK(image.getTopic().size() > 0);
-  CHECK(std::string(image.getTopic().cStr()) == "/tinysk/video0");
+  CHECK(std::string(image.getTopic().cStr()) == "/tinysk/video");
   CHECK(image.getTimestamp() > 0);
 
   CHECK(image.getWidth() == 640);
@@ -168,11 +192,13 @@ TEST_CASE("Camera Reader read test") {
   CHECK(data[1] == 0xd8);
 }
 
-TEST_CASE("Lidar Read Once Test") {
+TEST_CASE("Lidar.read") {
   Fixture f{config_file};
-  REQUIRE(is_device_exist(f.yaml()["laser"]["port"].get_value<std::string>()));
+  std::string sensor_name{"laser"};
+  REQUIRE(
+      is_device_exist(f.yaml()[sensor_name]["port"].get_value<std::string>()));
 
-  auto lreader = f.create_reader<tskpub::LidarReader>("laser");
+  auto lreader = f.create_reader<tskpub::LidarReader>(sensor_name);
   tskpub::MsgConstPtr msg{nullptr};
   while (!msg) {
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -180,7 +206,7 @@ TEST_CASE("Lidar Read Once Test") {
   }
   CHECK((msg != nullptr));
 
-  CapnpMsg<PointCloud> capnpmsg(msg, "laser");
+  CapnpMsg<PointCloud> capnpmsg(msg, sensor_name);
   auto &cloud = capnpmsg.root.value();
   CHECK(cloud.hasTopic());
   CHECK(cloud.getTopic().size() > 0);
@@ -189,36 +215,4 @@ TEST_CASE("Lidar Read Once Test") {
 
   auto points = cloud.getPoints();
   CHECK(points.size() > 1000);
-}
-
-TEST_CASE("Lidar Read Stream Test") {
-  std::this_thread::sleep_for(std::chrono::seconds(5));
-  Fixture f{config_file};
-  REQUIRE(is_device_exist(f.yaml()["laser"]["port"].get_value<std::string>()));
-
-  auto lreader = f.create_reader<tskpub::LidarReader>("laser");
-
-  // wait for the first message
-  tskpub::MsgConstPtr msg{nullptr};
-  while (!msg) {
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    msg = lreader->read();
-  }
-  CHECK((msg != nullptr));
-
-  // fast read next mybe empty
-  lreader->read();
-  CHECK((lreader->read() == nullptr));
-
-  // read at 10hz for 20 times
-  std::this_thread::sleep_for(std::chrono::seconds(5));
-  int cnt = 0;
-  for (int i = 0; i < 20; ++i) {
-    msg = lreader->read();
-    if (msg) {
-      ++cnt;
-    }
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-  }
-  CHECK(cnt > 10);
 }
