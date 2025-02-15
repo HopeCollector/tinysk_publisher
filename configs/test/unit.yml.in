@@ -16,7 +16,7 @@ info:
   type: Status
   rate: 1
   # cmake variable substitution by CMake's ```configure_file``` command`
-  cmd: bash @CMAKE_CURRENT_LIST_DIR@/status.sh
+  cmd: bash @CONFIG_DIR@/test/status.sh
 
 imu0:
   topic: /tinysk/imu
