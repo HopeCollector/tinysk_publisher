@@ -180,6 +180,8 @@ void Impl::run() {
         if (msg) {
           DEBUG("Read {} bytes from {}", msg->size(), name);
           socket->publish(msg);
+        } else {
+          WARN("Failed to read from {}", name);
         }
         r.sleep();
       }
