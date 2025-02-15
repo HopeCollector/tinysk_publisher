@@ -40,25 +40,21 @@ namespace {
     void work();
   };
 
+  int64_t milli_now() {
+    return std::chrono::duration_cast<std::chrono::milliseconds>(
+               std::chrono::system_clock::now().time_since_epoch())
+        .count();
+  }
+
   struct Rate {
-    size_t interval;
-    std::chrono::time_point<std::chrono::system_clock> last_call;
+    // 休眠周期
+    int64_t interval;
+    // 当前轮启动时间
+    int64_t start;
 
-    Rate(int rate)
-        : interval(size_t(1000 / rate)),
-          last_call(std::chrono::system_clock::now()) {}
+    Rate(int rate) : interval(int64_t(1e3 / rate)), start(milli_now()) {}
 
-    void sleep() {
-      auto now = std::chrono::system_clock::now();
-      auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
-                         now - last_call)
-                         .count();
-      if (elapsed < interval) {
-        std::this_thread::sleep_for(
-            std::chrono::milliseconds(interval - elapsed));
-      }
-      last_call = now;
-    }
+    void sleep();
   };
 
   struct Impl {
@@ -112,6 +108,33 @@ void Publisher::work() {
       zmq::const_buffer buf(msg->data(), msg->size());
       socket.send(buf, zmq::send_flags::none);
     });
+  }
+}
+
+void Rate::sleep() {
+  // 理想结束时间 = 当前轮启动时间 + 休眠周期
+  auto expected_end = start + interval;
+  // 实际结束时间
+  auto actual_end = milli_now();
+
+  // 若实际结束时间因为某种原因比启动时间还小
+  // 那么下一轮的启动时间 = 实际结束时间 + 休眠周期
+  if (actual_end < start) {
+    expected_end = actual_end + interval;
+  }
+  start = expected_end;  // 配置下一轮的启动时间
+
+  // 若实际结束时间超出预计，则不应该休眠
+  if (actual_end > expected_end) {
+    // 若实际结束时间超出预计时间的一个周期以上，则应立即启动下一轮
+    if (actual_end > expected_end + interval) {
+      // 立即启动下一轮意味着：下一轮的启动时间 = 实际结束时间
+      start = actual_end;
+    }
+  } else {
+    // 否则，休眠到预计结束时间
+    std::this_thread::sleep_for(
+        std::chrono::milliseconds(expected_end - actual_end));
   }
 }
 
