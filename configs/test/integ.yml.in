@@ -1,39 +1,48 @@
+app:
+  address: tcp://*:29877
+  max_message_size: 500
+
 log:
+  # stdout, stderr, or a file path
   filename: stderr
   # 0: trace, 1: debug, 2: info, 3: warn, 4: error, 5: critical, 6: off
   level: 2
-  pattern: "[%Y-%m-%d %H:%M:%S] [%L] [%P] [%T] %v"
+  pattern: "[%Y-%m-%d %H:%M:%S] [%L] [%P] %v"
 
-sensors: [status, imu, video0, laser]
+sensors: [info, imu0, video, laser]
 
-status:
+info:
   topic: /tinysk/status
   type: Status
   rate: 1
-  cmd: bash /ws/publisher/test/unit/status.sh
+  # cmake variable substitution by CMake's ```configure_file``` command`
+  cmd: bash @CONFIG_DIR@/test/status.sh
 
-imu:
+imu0:
   topic: /tinysk/imu
+  frame_id: imu_link
   type: Imu
   rate: 100
   port: /dev/ttyUSB0
   baud_rate: 115200
 
-video0:
-  topic: /tinysk/video0
+video:
+  topic: /tinysk/video
+  frame_id: camera_link
   type: Image
   rate: 10
-  pipeline: >-
-    v4l2src device=/dev/video0 !
-    video/x-raw, width=640, height=480, framerate=30/1 !
-    videoconvert ! jpegenc !
-    jpegparse ! appsink name=s
+  port: /dev/video0
+  width: 640
+  height: 480
+  fps: 10
+  enc_pipeline: jpegenc !
 
 laser:
   topic: /tinysk/laser
+  frame_id: laser_link
   type: PointCloud
   rate: 10
-  port: /dev/ttyACM0
+  port: /dev/ttyACM1
   device:
     frequency_modulation: 1
     HDR: 1
