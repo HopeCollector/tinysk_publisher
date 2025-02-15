@@ -21,6 +21,12 @@
 
 namespace {
   const std::string config_file{CONFIG_FILE};
+
+  bool is_device_exist(const std::string &device_path) {
+    struct stat buffer;
+    return (stat(device_path.c_str(), &buffer) == 0);
+  }
+
   struct Fixture {
     Fixture(const std::string &cfg_file) {
       tskpub::GlobalParams::get_instance().load_params(cfg_file);
@@ -62,12 +68,6 @@ namespace {
       root = reader->getRoot<T>();
     }
   };
-
-  bool is_device_exist(const std::string &device_path) {
-    struct stat buffer;
-    return (stat(device_path.c_str(), &buffer) == 0);
-  }
-
 }  // namespace
 
 TEST_CASE("Status Reader read test") {
