@@ -84,11 +84,11 @@ TEST_CASE("Auto Register") {
 
 TEST_CASE("Status Reader read test") {
   Fixture f{config_file};
-  auto sreader = f.create_reader<tskpub::StatusReader>("status");
+  auto sreader = f.create_reader<tskpub::StatusReader>("info");
   auto msg = sreader->read();
   CHECK((msg != nullptr));
 
-  CapnpMsg<Status> capnpmsg(msg, "status");
+  CapnpMsg<Status> capnpmsg(msg, "info");
   auto &status = capnpmsg.root.value();
   CHECK(status.hasTopic());
   CHECK(status.getTopic().size() > 0);
