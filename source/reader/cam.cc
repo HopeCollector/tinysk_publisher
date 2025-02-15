@@ -15,8 +15,18 @@ namespace tskpub {
 
   CameraReader::CameraReader(std::string sensor_name) : Reader(sensor_name) {
     auto params = GlobalParams::get_instance().yml[sensor_name_];
-    auto pipeline = params["pipeline"].get_value<std::string>();
-    impl_ = std::make_unique<Impl>(pipeline);
+    std::stringstream ss;
+    auto width = params["width"].get_value<int>();
+    auto height = params["height"].get_value<int>();
+    // clang-format off
+    ss << "v4l2src device=" << params["port"].get_value<std::string>() << " !"
+       << " video/x-raw, width=" << width << ", height=" << height << " !"
+       << " videoconvert ! " << params["enc_pipeline"].get_value<std::string>()
+       << " videorate ! image/jpeg framerate=" << params["fps"].get_value<int>() << "/1 !"
+       << " jpegparse ! appsink name=s";
+    // clang-format on
+    Log::info("Camera pipeline: " + ss.str());
+    impl_ = std::make_unique<Impl>(ss.str());
     if (!impl_->cam.connect()) {
       Log::critical("Failed to connect to camera");
       throw std::runtime_error("Failed to connect to camera");
