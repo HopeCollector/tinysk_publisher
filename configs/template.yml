@@ -14,6 +14,7 @@ sensors: [status, imu, video, laser]
 status:
   topic: /tinysk/status
   type: Status
+  ros: Float32MultiArray
   rate: 1
   cmd: bash /ws/publisher/test/unit/status.sh
 
@@ -21,6 +22,7 @@ imu:
   topic: /tinysk/imu
   frame_id: imu_link
   type: Imu
+  ros: Imu
   rate: 100
   port: /dev/ttyUSB0
   baud_rate: 115200
@@ -29,6 +31,7 @@ video:
   topic: /tinysk/video
   frame_id: camera_link
   type: Image
+  ros: Image
   rate: 10
   port: /dev/video4
   width: 640
@@ -43,6 +46,7 @@ laser:
   topic: /tinysk/laser
   frame_id: laser_link
   type: PointCloud
+  ros: PointCloud2
   rate: 10
   port: /dev/ttyACM1
   device:
