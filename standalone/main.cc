@@ -34,7 +34,7 @@ namespace {
     std::deque<tskpub::MsgConstPtr> queue;
     std::mutex qmtx;
     Publisher() = delete;
-    Publisher(const std::string& address);
+    Publisher(const std::string& address, int max_msg_size);
     ~Publisher();
     void publish(tskpub::MsgConstPtr msg);
     void work();
@@ -72,12 +72,13 @@ namespace {
   };
 }  // namespace
 
-Publisher::Publisher(const std::string& address)
+Publisher::Publisher(const std::string& address, int max_msg_size)
     : context(),
       socket(context, zmq::socket_type::pub),
       address(address),
       job(&Publisher::work, this) {
-  socket.set(zmq::sockopt::conflate, 1);
+  // socket.set(zmq::sockopt::conflate, 1);
+  socket.set(zmq::sockopt::sndhwm, max_msg_size);
   socket.bind(address);
 }
 
@@ -164,7 +165,8 @@ void Impl::init() {
     throw std::runtime_error("Logger not initialized");
   }
   socket = std::make_unique<Publisher>(
-      params["app"]["address"].get_value<std::string>());
+      params["app"]["address"].get_value<std::string>(),
+      params["app"]["max_message_size"].get_value<int>());
   INFO("App Start");
 }
 
