@@ -30,8 +30,8 @@ file(GLOB_RECURSE reader_srcs CONFIGURE_DEPENDS ${src_dir}/*.cc)
 add_executable(${PROJECT_NAME} ${reader_test_srcs} ${reader_srcs})
 target_include_directories(${PROJECT_NAME} PRIVATE ${src_dir} ${CMAKE_CURRENT_BINARY_DIR} ${PCL_INCLUDE_DIRS})
 target_link_libraries(${PROJECT_NAME} PRIVATE dep_helper imu Camera xtsdk::xtsdk ${PCL_LIBRARIES})
-target_compile_definitions(${PROJECT_NAME} PRIVATE CONFIG_FILE="${CONFIG_DIR}/cfg.yml")
-
+configure_file(${CONFIG_DIR}/test/unit.yml.in ${CMAKE_CURRENT_BINARY_DIR}/unit.yml)
+target_compile_definitions(${PROJECT_NAME} PRIVATE CONFIG_FILE="${CMAKE_CURRENT_BINARY_DIR}/unit.yml")
 
 include(${doctest_SOURCE_DIR}/scripts/cmake/doctest.cmake)
 enable_testing()

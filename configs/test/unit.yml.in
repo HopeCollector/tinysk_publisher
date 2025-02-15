@@ -1,0 +1,72 @@
+app:
+  address: tcp://*:29877
+  max_message_size: 500
+
+log:
+  # stdout, stderr, or a file path
+  filename: stderr
+  # 0: trace, 1: debug, 2: info, 3: warn, 4: error, 5: critical, 6: off
+  level: 2
+  pattern: "[%Y-%m-%d %H:%M:%S] [%L] [%P] %v"
+
+sensors: [info, imu0, video, laser]
+
+info:
+  topic: /tinysk/status
+  type: Status
+  rate: 1
+  # cmake variable substitution by CMake's ```configure_file``` command`
+  cmd: bash @CMAKE_CURRENT_LIST_DIR@/status.sh
+
+imu0:
+  topic: /tinysk/imu
+  frame_id: imu_link
+  type: Imu
+  rate: 100
+  port: /dev/ttyUSB0
+  baud_rate: 115200
+
+video:
+  topic: /tinysk/video
+  frame_id: camera_link
+  type: Image
+  rate: 10
+  port: /dev/video0
+  width: 640
+  height: 480
+  fps: 10
+  enc_pipeline: jpegenc !
+
+laser:
+  topic: /tinysk/laser
+  frame_id: laser_link
+  type: PointCloud
+  rate: 10
+  port: /dev/ttyACM1
+  device:
+    frequency_modulation: 1
+    HDR: 1
+    imgType: 4
+    cloud_coord: 0
+    int1: 100
+    int2: 1000
+    int3: 0
+    intgs: 2000
+    minLSB: 80
+    curcorner: 60
+    start_stream: true
+    # connect_address: 0.0.0.0
+    maxfps: 30
+    hmirror: 0
+    vmirror: 0
+    renderType: 2
+  filter:
+    medianSize: 3
+    kalmanEnable: true
+    kalmanFactor: 0.30
+    kalmanThreshold: 200
+    edgeEnable: true
+    edgeThreshold: 300
+    dustEnable: true
+    dustThreshold: 2000
+    dustFrames: 2
