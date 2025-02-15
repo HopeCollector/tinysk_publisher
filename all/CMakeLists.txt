@@ -7,9 +7,6 @@ project(BuildAll LANGUAGES CXX)
 
 include(../cmake/tools.cmake)
 
-# needed to generate test target
-enable_testing()
-
 set(CONFIG_DIR ${CMAKE_CURRENT_LIST_DIR}/../configs)
 
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/../standalone ${CMAKE_BINARY_DIR}/standalone)
