@@ -2,7 +2,7 @@
 
 #include <Camera/cam.hh>
 
-#include "TSKPub/msg/image.capnp.h"
+#include "TSKPub/msg/Image.capnp.h"
 #include "reader/reader.hh"
 
 namespace tskpub {

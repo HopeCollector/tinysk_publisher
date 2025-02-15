@@ -5,7 +5,7 @@
 
 #include <iomanip>
 
-#include "TSKPub/msg/status.capnp.h"
+#include "TSKPub/msg/Status.capnp.h"
 
 namespace tskpub {
   Reader::Reader(std::string sensor_name) : sensor_name_(sensor_name) {

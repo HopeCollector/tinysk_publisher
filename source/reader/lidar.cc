@@ -1,4 +1,4 @@
-#include <TSKPub/msg/point_cloud.capnp.h>
+#include <TSKPub/msg/PointCloud.capnp.h>
 #include <capnp/serialize-packed.h>
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>

@@ -1,4 +1,4 @@
-#include <TSKPub/msg/status.capnp.h>
+#include <TSKPub/msg/Status.capnp.h>
 #include <capnp/serialize-packed.h>
 
 #include "reader/reader.hh"

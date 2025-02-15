@@ -1,6 +1,6 @@
 #include <capnp/serialize-packed.h>
 
-#include "TSKPub/msg/imu.capnp.h"
+#include "TSKPub/msg/Imu.capnp.h"
 #include "reader/reader.hh"
 
 extern "C" {

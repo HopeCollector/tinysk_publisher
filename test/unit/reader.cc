@@ -1,9 +1,9 @@
 #include "reader/reader.hh"
 
-#include <TSKPub/msg/image.capnp.h>
-#include <TSKPub/msg/imu.capnp.h>
-#include <TSKPub/msg/point_cloud.capnp.h>
-#include <TSKPub/msg/status.capnp.h>
+#include <TSKPub/msg/Image.capnp.h>
+#include <TSKPub/msg/Imu.capnp.h>
+#include <TSKPub/msg/PointCloud.capnp.h>
+#include <TSKPub/msg/Status.capnp.h>
 #include <capnp/serialize-packed.h>
 #include <doctest/doctest.h>
 #include <sys/stat.h>
