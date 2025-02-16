@@ -198,6 +198,7 @@ void Impl::run() {
         auto msg = pub->read(name);
         if (!msg) {
           WARN("Failed to read from {}", name);
+          continue;
         }
         DEBUG("Read {} bytes from {}", msg->size(), name);
         zmq::const_buffer buf(msg->data(), msg->size());
