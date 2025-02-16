@@ -175,11 +175,23 @@ void Impl::run() {
   for (const auto& name : sensors) {
     threads.emplace_back([&]() {
       Rate r(params[name]["rate"].get_value<size_t>());
+      size_t cnt = 0;
+      auto prvt = milli_now();
       while (is_running) {
         auto msg = pub->read(name);
         if (msg) {
           DEBUG("Read {} bytes from {}", msg->size(), name);
           socket->publish(msg);
+          cnt++;
+          auto curt = milli_now();
+          if (curt - prvt > 10 * 1e3) {
+            std::stringstream ss;
+            ss << name << " rate: " << std::fixed << std::setprecision(2)
+               << cnt * 1e3 / (curt - prvt) << " Hz";
+            INFO(ss.str());
+            cnt = 0;
+            prvt = curt;
+          }
         } else {
           WARN("Failed to read from {}", name);
         }
