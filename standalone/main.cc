@@ -54,6 +54,16 @@ namespace {
     void sleep();
   };
 
+  struct Freq {
+    int64_t start;
+    int64_t last;
+    size_t cnt;
+    std::string name;
+    Freq() = delete;
+    Freq(const std::string& name);
+    void update();
+  };
+
   struct Impl {
     using Ptr = std::unique_ptr<Impl>;
     std::unique_ptr<tskpub::TSKPub> pub;
@@ -85,7 +95,7 @@ Publisher::~Publisher() {
 }
 
 void Publisher::work() {
-  INFO("Publisher work");
+  Freq f("Publisher");
   while (is_running) {
     zmq::message_t msg;
     if (!queue.recv(msg)) {
@@ -93,6 +103,7 @@ void Publisher::work() {
       continue;
     }
     socket.send(msg, zmq::send_flags::none);
+    f.update();
   }
 }
 
@@ -121,6 +132,22 @@ void Rate::sleep() {
     std::this_thread::sleep_for(
         std::chrono::milliseconds(expected_end - actual_end));
   }
+}
+
+Freq::Freq(const std::string& name)
+    : start(milli_now()), last(start), cnt(0), name(name) {}
+
+void Freq::update() {
+  auto curt = milli_now();
+  if (curt - last > 10 * 1e3) {
+    std::stringstream ss;
+    ss << name << " rate: " << std::fixed << std::setprecision(2)
+       << cnt * 1e3 / (curt - last) << " Hz";
+    INFO(ss.str());
+    cnt = 0;
+    last = curt;
+  }
+  cnt++;
 }
 
 Impl::Impl(const std::string& config_path)
@@ -162,6 +189,7 @@ void Impl::run() {
   for (const auto& name : sensors) {
     threads.emplace_back([&]() {
       Rate r(params[name]["rate"].get_value<size_t>());
+      Freq f(name);
       size_t cnt = 0;
       auto prvt = milli_now();
       zmq::socket_t queue(*context, zmq::socket_type::push);
@@ -174,16 +202,7 @@ void Impl::run() {
         DEBUG("Read {} bytes from {}", msg->size(), name);
         zmq::const_buffer buf(msg->data(), msg->size());
         queue.send(buf, zmq::send_flags::none);
-        cnt++;
-        auto curt = milli_now();
-        if (curt - prvt > 10 * 1e3) {
-          std::stringstream ss;
-          ss << name << " rate: " << std::fixed << std::setprecision(2)
-             << cnt * 1e3 / (curt - prvt) << " Hz";
-          INFO(ss.str());
-          cnt = 0;
-          prvt = curt;
-        }
+        f.update();
         r.sleep();
       }
       queue.close();
