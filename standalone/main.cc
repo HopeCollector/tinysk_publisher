@@ -24,10 +24,10 @@
 namespace {
   std::shared_ptr<spdlog::logger> logger{nullptr};
   std::atomic<bool> is_running{true};
+  std::optional<zmq::context_t> context{std::nullopt};
 
   struct Publisher {
     using Ptr = std::unique_ptr<Publisher>;
-    zmq::context_t context;
     zmq::socket_t socket;
     std::string address;
     std::thread job;
@@ -73,8 +73,7 @@ namespace {
 }  // namespace
 
 Publisher::Publisher(const std::string& address, int max_msg_size)
-    : context(),
-      socket(context, zmq::socket_type::pub),
+    : socket(context.value(), zmq::socket_type::pub),
       address(address),
       job(&Publisher::work, this) {
   // socket.set(zmq::sockopt::conflate, 1);
@@ -85,7 +84,6 @@ Publisher::Publisher(const std::string& address, int max_msg_size)
 Publisher::~Publisher() {
   job.join();
   socket.close();
-  context.close();
 }
 
 void Publisher::publish(tskpub::MsgConstPtr payload) {
@@ -151,6 +149,7 @@ Impl::~Impl() {
   std::for_each(threads.begin(), threads.end(),
                 std::mem_fn(&std::thread::join));
   spdlog::drop(logger->name());
+  context.reset();
 }
 
 void Impl::init() {
@@ -164,6 +163,8 @@ void Impl::init() {
   if (!logger) {
     throw std::runtime_error("Logger not initialized");
   }
+
+  context = std::make_optional<zmq::context_t>(3);
   socket = std::make_unique<Publisher>(
       params["app"]["address"].get_value<std::string>(),
       params["app"]["max_message_size"].get_value<int>());
