@@ -1,6 +1,8 @@
 #include <capnp/serialize-packed.h>
 
 #include <Camera/cam.hh>
+#include <atomic>
+#include <thread>
 
 #include "TSKPub/msg/Image.capnp.h"
 #include "reader/reader.hh"
@@ -9,9 +11,24 @@ namespace tskpub {
   struct CameraReader::Impl {
     std::string pipeline;
     camera::Camera cam;
+    std::thread job;
+    camera::Image::ConstPtr image{nullptr};
+    std::atomic<bool> is_running{true};
+    size_t max_sz;
     Impl() = delete;
     Impl(const std::string& pipeline) : pipeline(pipeline), cam(pipeline) {}
+    void read_cb();
   };
+
+  void CameraReader::Impl::read_cb() {
+    while (is_running) {
+      auto tmp = cam.capture();
+      if (!tmp) {
+        continue;
+      }
+      image = tmp;
+    }
+  }
 
   CameraReader::CameraReader(std::string sensor_name) : Reader(sensor_name) {
     auto params = GlobalParams::get_instance().yml[sensor_name_];
@@ -27,16 +44,18 @@ namespace tskpub {
     // clang-format on
     Log::info("Camera pipeline: " + ss.str());
     impl_ = std::make_unique<Impl>(ss.str());
+    impl_->max_sz = width * height * 3;
     if (!impl_->cam.connect()) {
       Log::critical("Failed to connect to camera");
       throw std::runtime_error("Failed to connect to camera");
     }
+    impl_->job = std::thread(&Impl::read_cb, impl_.get());
   }
 
   CameraReader::~CameraReader() {}
 
   MsgConstPtr CameraReader::read() {
-    auto img = impl_->cam.capture();
+    auto img = impl_->image;
     if (!img) {
       return nullptr;
     }
