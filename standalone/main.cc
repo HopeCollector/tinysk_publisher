@@ -29,14 +29,11 @@ namespace {
   struct Publisher {
     using Ptr = std::unique_ptr<Publisher>;
     zmq::socket_t socket;
+    zmq::socket_t queue;
     std::string address;
-    std::thread job;
-    std::deque<tskpub::MsgConstPtr> queue;
-    std::mutex qmtx;
     Publisher() = delete;
     Publisher(const std::string& address, int max_msg_size);
     ~Publisher();
-    void publish(tskpub::MsgConstPtr msg);
     void work();
   };
 
@@ -73,40 +70,29 @@ namespace {
 }  // namespace
 
 Publisher::Publisher(const std::string& address, int max_msg_size)
-    : socket(context.value(), zmq::socket_type::pub),
-      address(address),
-      job(&Publisher::work, this) {
+    : socket(*context, zmq::socket_type::pub),
+      queue(*context, zmq::socket_type::pull),
+      address(address) {
   // socket.set(zmq::sockopt::conflate, 1);
   socket.set(zmq::sockopt::sndhwm, max_msg_size);
   socket.bind(address);
+  queue.bind("inproc://tinysk");
 }
 
 Publisher::~Publisher() {
-  job.join();
+  queue.close();
   socket.close();
 }
 
-void Publisher::publish(tskpub::MsgConstPtr payload) {
-  std::lock_guard<std::mutex> lock(qmtx);
-  queue.push_back(payload);
-}
-
 void Publisher::work() {
+  INFO("Publisher work");
   while (is_running) {
-    while (queue.empty()) {
-      std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    zmq::message_t msg;
+    if (!queue.recv(msg)) {
+      WARN("Failed to receive message");
+      continue;
     }
-
-    std::deque<tskpub::MsgConstPtr> buffer;
-    {
-      std::lock_guard<std::mutex> lock(qmtx);
-      buffer.swap(queue);
-    }
-
-    std::for_each(buffer.begin(), buffer.end(), [&](tskpub::MsgConstPtr& msg) {
-      zmq::const_buffer buf(msg->data(), msg->size());
-      socket.send(buf, zmq::send_flags::none);
-    });
+    socket.send(msg, zmq::send_flags::none);
   }
 }
 
@@ -178,31 +164,32 @@ void Impl::run() {
       Rate r(params[name]["rate"].get_value<size_t>());
       size_t cnt = 0;
       auto prvt = milli_now();
+      zmq::socket_t queue(*context, zmq::socket_type::push);
+      queue.connect("inproc://tinysk");
       while (is_running) {
         auto msg = pub->read(name);
-        if (msg) {
-          DEBUG("Read {} bytes from {}", msg->size(), name);
-          socket->publish(msg);
-          cnt++;
-          auto curt = milli_now();
-          if (curt - prvt > 10 * 1e3) {
-            std::stringstream ss;
-            ss << name << " rate: " << std::fixed << std::setprecision(2)
-               << cnt * 1e3 / (curt - prvt) << " Hz";
-            INFO(ss.str());
-            cnt = 0;
-            prvt = curt;
-          }
-        } else {
+        if (!msg) {
           WARN("Failed to read from {}", name);
+        }
+        DEBUG("Read {} bytes from {}", msg->size(), name);
+        zmq::const_buffer buf(msg->data(), msg->size());
+        queue.send(buf, zmq::send_flags::none);
+        cnt++;
+        auto curt = milli_now();
+        if (curt - prvt > 10 * 1e3) {
+          std::stringstream ss;
+          ss << name << " rate: " << std::fixed << std::setprecision(2)
+             << cnt * 1e3 / (curt - prvt) << " Hz";
+          INFO(ss.str());
+          cnt = 0;
+          prvt = curt;
         }
         r.sleep();
       }
+      queue.close();
     });
   }
-  while (is_running) {
-    std::this_thread::sleep_for(std::chrono::milliseconds(500));
-  }
+  socket->work();
 }
 
 auto parse_args(int argc, char** argv) {
