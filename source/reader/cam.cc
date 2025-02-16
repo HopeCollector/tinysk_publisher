@@ -52,7 +52,12 @@ namespace tskpub {
     impl_->job = std::thread(&Impl::read_cb, impl_.get());
   }
 
-  CameraReader::~CameraReader() {}
+  CameraReader::~CameraReader() {
+    impl_->is_running = false;
+    if (impl_->job.joinable()) {
+      impl_->job.join();
+    }
+  }
 
   MsgConstPtr CameraReader::read() {
     auto img = impl_->image;
