@@ -98,8 +98,8 @@ void Publisher::work() {
   Freq f("Publisher");
   while (is_running) {
     zmq::message_t msg;
-    if (!queue.recv(msg)) {
-      WARN("Failed to receive message");
+    if (!queue.recv(msg, zmq::recv_flags::dontwait)) {
+      std::this_thread::sleep_for(std::chrono::milliseconds(1));
       continue;
     }
     socket.send(msg, zmq::send_flags::none);
@@ -158,7 +158,7 @@ Impl::Impl(const std::string& config_path)
 
 Impl::~Impl() {
   WARN("Destroying Impl");
-  is_running = false;
+  socket.reset();
   std::for_each(threads.begin(), threads.end(),
                 std::mem_fn(&std::thread::join));
   spdlog::drop(logger->name());
