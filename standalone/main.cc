@@ -25,6 +25,7 @@ namespace {
   std::shared_ptr<spdlog::logger> logger{nullptr};
   std::atomic<bool> is_running{true};
   std::optional<zmq::context_t> context{std::nullopt};
+  fkyaml::node params;
 
   struct Publisher {
     using Ptr = std::unique_ptr<Publisher>;
@@ -67,7 +68,6 @@ namespace {
   struct Impl {
     using Ptr = std::unique_ptr<Impl>;
     std::unique_ptr<tskpub::TSKPub> pub;
-    fkyaml::node params;
     std::string config_file_path;
     std::deque<std::thread> threads;
     Publisher::Ptr socket;
@@ -96,10 +96,11 @@ Publisher::~Publisher() {
 
 void Publisher::work() {
   Freq f("Publisher");
+  Rate r(params["app"]["checking_rate"].get_value<int>());
   while (is_running) {
     zmq::message_t msg;
     if (!queue.recv(msg, zmq::recv_flags::dontwait)) {
-      std::this_thread::sleep_for(std::chrono::milliseconds(1));
+      r.sleep();
       continue;
     }
     socket.send(msg, zmq::send_flags::none);

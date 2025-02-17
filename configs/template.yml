@@ -1,6 +1,8 @@
 app:
   address: tcp://*:29877
   max_message_size: 500
+  # 轮询消息队列的频率，单位 Hz
+  checking_rate: 100
 
 log:
   # stdout, stderr, or a file path
