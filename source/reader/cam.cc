@@ -87,7 +87,7 @@ namespace tskpub {
     kj::ArrayPtr<const kj::byte> data_ptr{
         reinterpret_cast<const kj::byte*>(img->data.data()), img->data.size()};
     image.setData(data_ptr);
-    return to_msg(builder, img->size + sizeof(camera::Image));
+    return to_msg(builder, impl_->max_sz);
   }
 
 }  // namespace tskpub

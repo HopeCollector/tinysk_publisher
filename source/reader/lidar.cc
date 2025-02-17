@@ -238,6 +238,6 @@ namespace tskpub {
       points[i].setZ(cld->points[i].z);
       points[i].setI(cld->points[i].intensity);
     }
-    return to_msg(builder, cld->size() * sizeof(PointT));
+    return to_msg(builder, cld->size() * sizeof(PointT) + 500);
   }
 }  // namespace tskpub
