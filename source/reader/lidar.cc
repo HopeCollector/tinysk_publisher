@@ -128,13 +128,17 @@ namespace tskpub {
     }
 
     Cld::Ptr ret(new Cld);
-    ret->resize(3000);
+    size_t sz = 3000;
+    int ratio = imgframe->points.size() / sz;
+    ret->resize(imgframe->points.size() / ratio);
     ret->header.stamp = imgframe->timeStampS * 1e9 + imgframe->timeStampNS;
-    for (size_t i = 0; i < ret->size(); i++) {
-      ret->points[i].x = imgframe->points[i].x;
-      ret->points[i].y = imgframe->points[i].y;
-      ret->points[i].z = imgframe->points[i].z;
-      ret->points[i].intensity = imgframe->points[i].intensity;
+    for (size_t i = 0; i < imgframe->points.size(); i++) {
+      if (i % ratio != 0) continue;
+      size_t idx = i / ratio;
+      ret->points[idx].x = imgframe->points[idx].x;
+      ret->points[idx].y = imgframe->points[idx].y;
+      ret->points[idx].z = imgframe->points[idx].z;
+      ret->points[idx].intensity = imgframe->points[idx].intensity;
     }
     cld = ret;
   }
