@@ -83,8 +83,7 @@ Publisher::Publisher(const std::string& address, int max_msg_size)
     : socket(*context, zmq::socket_type::pub),
       queue(*context, zmq::socket_type::pull),
       address(address) {
-  // socket.set(zmq::sockopt::conflate, 1);
-  socket.set(zmq::sockopt::sndhwm, max_msg_size);
+  socket.set(zmq::sockopt::conflate, 1);
   socket.bind(address);
   queue.bind("inproc://tinysk");
 }
