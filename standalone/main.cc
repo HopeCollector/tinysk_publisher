@@ -197,7 +197,7 @@ void Impl::run() {
       while (is_running) {
         auto msg = pub->read(name);
         if (!msg) {
-          WARN("Failed to read from {}", name);
+          DEBUG("Failed to read from {}", name);
           continue;
         }
         DEBUG("Read {} bytes from {}", msg->size(), name);
