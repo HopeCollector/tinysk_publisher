@@ -12,6 +12,7 @@ namespace tskpub {
     std::string pipeline;
     camera::Camera cam;
     std::thread job;
+    std::mutex imtx;
     camera::Image::ConstPtr image{nullptr};
     std::atomic<bool> is_running{true};
     size_t max_sz;
@@ -26,7 +27,8 @@ namespace tskpub {
       if (!tmp) {
         continue;
       }
-      image = tmp;
+      std::lock_guard<std::mutex> lock(imtx);
+      image.swap(tmp);
     }
   }
 
@@ -60,7 +62,11 @@ namespace tskpub {
   }
 
   MsgConstPtr CameraReader::read() {
-    auto img = impl_->image;
+    camera::Image::ConstPtr img{nullptr};
+    {
+      std::lock_guard<std::mutex> lock(impl_->imtx);
+      img.swap(impl_->image);
+    }
     if (!img) {
       return nullptr;
     }
