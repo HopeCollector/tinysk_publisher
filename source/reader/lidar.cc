@@ -51,7 +51,8 @@ namespace {
 namespace tskpub {
   struct LidarReader::Impl {
     std::unique_ptr<XinTan::XtSdk> xtsdk{nullptr};
-    Cld::ConstPtr cld{nullptr};
+    Cld::Ptr cld{nullptr};
+    std::mutex cmtx;
     std::string port;
     Params params;
     size_t cld_size;
@@ -71,11 +72,12 @@ namespace tskpub {
 
     Cld::ConstPtr read() {
       if (!xtsdk) init();
-      static Cld::ConstPtr prev_cld = nullptr;
+      static Cld::Ptr prev_cld = nullptr;
       if (cld == prev_cld) {
         return nullptr;
       }
-      prev_cld = cld;
+      std::lock_guard<std::mutex> lock(cmtx);
+      prev_cld.swap(cld);
       return cld;
     }
   };
@@ -140,7 +142,8 @@ namespace tskpub {
       ret->points[idx].z = imgframe->points[idx].z;
       ret->points[idx].intensity = imgframe->points[idx].intensity;
     }
-    cld = ret;
+    std::lock_guard<std::mutex> lock(cmtx);
+    cld.swap(ret);
   }
 
   void LidarReader::Impl::init() {
