@@ -50,6 +50,7 @@ laser:
   ros: PointCloud2
   rate: 10
   port: /dev/ttyACM1
+  cloud_size: 5000
   device:
     frequency_modulation: 1
     HDR: 1

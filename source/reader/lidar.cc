@@ -1,5 +1,6 @@
 #include <TSKPub/msg/PointCloud.capnp.h>
 #include <capnp/serialize-packed.h>
+#include <pcl/filters/random_sample.h>
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 #include <xtsdk/utils.h>
@@ -55,7 +56,7 @@ namespace tskpub {
     std::mutex cmtx;
     std::string port;
     Params params;
-    size_t cld_size;
+    pcl::RandomSample<PointT> sampler;
 
     ~Impl() {
       if (xtsdk && xtsdk->isconnect()) {
@@ -129,19 +130,28 @@ namespace tskpub {
       return;
     }
 
+    // filter out nan points
+    Cld::Ptr filtered{new Cld};
+    filtered->reserve(imgframe->points.size());
+    std::for_each(imgframe->points.begin(), imgframe->points.end(),
+                  [&filtered](const XinTan::XtPointXYZI &p) {
+                    if (std::isnan(p.x) || std::isnan(p.y) || std::isnan(p.z))
+                      return;
+                    PointT pt;
+                    pt.x = p.x;
+                    pt.y = p.y;
+                    pt.z = p.z;
+                    pt.intensity = p.intensity;
+                    filtered->push_back(pt);
+                  });
+
+    // downsample
     Cld::Ptr ret(new Cld);
-    size_t sz = 3000;
-    int ratio = imgframe->points.size() / sz;
-    ret->resize(imgframe->points.size() / ratio);
+    ret->resize(sampler.getSample());
     ret->header.stamp = imgframe->timeStampS * 1e9 + imgframe->timeStampNS;
-    for (size_t i = 0; i < imgframe->points.size(); i++) {
-      if (i % ratio != 0) continue;
-      size_t idx = i / ratio;
-      ret->points[idx].x = imgframe->points[idx].x;
-      ret->points[idx].y = imgframe->points[idx].y;
-      ret->points[idx].z = imgframe->points[idx].z;
-      ret->points[idx].intensity = imgframe->points[idx].intensity;
-    }
+    sampler.setInputCloud(filtered);
+    sampler.filter(*ret);
+
     std::lock_guard<std::mutex> lock(cmtx);
     cld.swap(ret);
   }
@@ -202,7 +212,7 @@ namespace tskpub {
 
     auto &cfg = GlobalParams::get_instance().yml[sensor_name];
     impl_->port = cfg["port"].get_value<std::string>();
-    impl_->cld_size = cfg["cloud_size"].get_value<size_t>();
+    impl_->sampler.setSample(cfg["cloud_size"].get_value<size_t>());
   }
 
   LidarReader::~LidarReader() {}

@@ -15,7 +15,7 @@ CPMAddPackage(NAME imu URL ${driver_dir}/imu.tar.gz)
 CPMAddPackage(NAME Camera URL ${driver_dir}/camera.tar.gz)
 CPMAddPackage(NAME lidar URL ${driver_dir}/lidar.tar.gz)
 CPMAddPackage("gh:doctest/doctest@2.4.11")
-find_package(PCL REQUIRED COMPONENTS common)
+find_package(PCL REQUIRED COMPONENTS common filters)
 
 add_library(dep_helper INTERFACE IMPORTED)
 target_link_libraries(dep_helper INTERFACE doctest TSKPub::messages spdlog fkYAML)

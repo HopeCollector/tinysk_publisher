@@ -34,8 +34,10 @@ list(APPEND dep_list "imu" "Camera" "lidar")
 
 # 本地系统依赖
 find_package(CapnProto CONFIG REQUIRED)
-find_package(PCL REQUIRED COMPONENTS common)
-list(APPEND dep_list "CapnProto" "PCL COMPONENTS common")
+find_package(PCL REQUIRED COMPONENTS common filters)
+list(APPEND dep_list "CapnProto" "PCL COMPONENTS common filters")
+message(STATUS "PCL_INCLUDE_DIRS: ${PCL_INCLUDE_DIRS}")
+message(STATUS "PCL_LIBRARIES: ${PCL_LIBRARIES}")
 
 # ---- Create library ----
 add_subdirectory(messages)
