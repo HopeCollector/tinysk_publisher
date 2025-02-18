@@ -33,6 +33,7 @@ namespace {
     void sleep();
   };
 
+  // Test fixture for simple setup a test case and read streamly from readers
   struct Fixture {
     tskpub::TSKPub pub;
     fkyaml::node yml;
@@ -121,7 +122,9 @@ TEST_CASE("read<Lidar>") {
   auto port = f.yml[sensor_name]["port"].get_value<std::string>();
   REQUIRE(is_device_exist(port));
   size_t max_num = 40;
+  // lazy init, so we need to read once to start the lidar
   f.pub.read(sensor_name);
+  // lidar may take some time to start
   std::this_thread::sleep_for(std::chrono::seconds(10));
   auto num = f.read_streamly(sensor_name, max_num);
   CHECK(num > max_num * 0.5);
@@ -138,6 +141,8 @@ TEST_CASE("read<All>") {
   auto vport = f.yml["video"]["port"].get_value<std::string>();
   REQUIRE(is_device_exist(vport));
 
+  // setup threads to read from different sensors
+  // this is to simulate the real-time reading from different sensors
   size_t max_snum = 10;
   size_t max_inum = 100;
   size_t max_cnum = 40;
