@@ -178,9 +178,10 @@ void Impl::init() {
   }
 
   context = std::make_optional<zmq::context_t>(3);
+  std::string address{"tcp://*:"};
+  address += std::to_string(params["app"]["port"].get_value<int>());
   socket = std::make_unique<Publisher>(
-      params["app"]["address"].get_value<std::string>(),
-      params["app"]["max_message_size"].get_value<int>());
+      address, params["app"]["max_message_size"].get_value<int>());
   INFO("App Start");
 }
 
