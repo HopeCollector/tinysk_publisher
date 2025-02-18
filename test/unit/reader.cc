@@ -21,14 +21,20 @@
 namespace {
   const std::string config_file{CONFIG_FILE};
 
+  /// @brief Check if the device exists
+  /// @param device_path path of the device
+  /// @return true if the device exists
   bool is_device_exist(const std::string &device_path) {
     struct stat buffer;
     return (stat(device_path.c_str(), &buffer) == 0);
   }
 
+  /// @brief Test fixture for simple setup a test case and create reader
   struct Fixture {
     Fixture(const std::string &cfg_file) {
+      // load config file
       tskpub::GlobalParams::get_instance().load_params(cfg_file);
+      // init logger
       tskpub::Log::init();
     }
 
@@ -41,6 +47,10 @@ namespace {
       return tskpub::GlobalParams::get_instance().yml;
     }
 
+    /// @brief Create reader for sensor_name
+    /// @tparam T Reader type
+    /// @param sensor_name name in the config file
+    /// @return pointer to the reader
     template <typename T>
     typename T::Ptr create_reader(const std::string &sensor_name) {
       auto &params = yaml()[sensor_name];
@@ -50,6 +60,8 @@ namespace {
     }
   };
 
+  /// @brief decoding capnp message
+  /// @tparam T capnp message type
   template <class T> struct CapnpMsg {
     using Reader = typename T::Reader;
     std::string sensor_name;
@@ -69,6 +81,7 @@ namespace {
   };
 }  // namespace
 
+// test if auto regist factory works
 TEST_CASE("AutoRegistFactory") {
   Fixture f{config_file};
   auto sreader = f.create_reader<tskpub::StatusReader>("info");
@@ -81,12 +94,14 @@ TEST_CASE("AutoRegistFactory") {
   CHECK((creader != nullptr));
 }
 
+// read once from StatusReader
 TEST_CASE("Status.read") {
   Fixture f{config_file};
   auto sreader = f.create_reader<tskpub::StatusReader>("info");
   auto msg = sreader->read();
   CHECK((msg != nullptr));
 
+  // decode the message and check the content
   CapnpMsg<Status> capnpmsg(msg, "info");
   auto &status = capnpmsg.root.value();
   CHECK(status.hasTopic());
@@ -103,6 +118,7 @@ TEST_CASE("Status.read") {
   CHECK(status.getTotalReadBytes() >= 0);
 }
 
+// package data from IMUReader
 TEST_CASE("IMU.package_data") {
   Fixture f{config_file};
   std::string sensor_name{"imu0"};
@@ -141,6 +157,7 @@ TEST_CASE("IMU.package_data") {
   CHECK(avel.getZ() == test_data[5]);
 }
 
+// read once from IMUReader
 TEST_CASE("IMU.read") {
   Fixture f{config_file};
   std::string sensor_name{"imu0"};
@@ -162,6 +179,7 @@ TEST_CASE("IMU.read") {
   CHECK(imu.hasAngularVelocity());
 }
 
+// read once from CameraReader
 TEST_CASE("Camera.read") {
   Fixture f{config_file};
   std::string sensor_name{"video"};
@@ -191,6 +209,7 @@ TEST_CASE("Camera.read") {
   CHECK(data[1] == 0xd8);
 }
 
+// read once from LidarReader
 TEST_CASE("Lidar.read") {
   Fixture f{config_file};
   std::string sensor_name{"laser"};
@@ -199,6 +218,7 @@ TEST_CASE("Lidar.read") {
 
   auto lreader = f.create_reader<tskpub::LidarReader>(sensor_name);
   tskpub::MsgConstPtr msg{nullptr};
+  // lidar may take some time to start
   while (!msg) {
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
     msg = lreader->read();
