@@ -12,6 +12,10 @@ namespace tskpub {
   public:
     TSKPub(const std::string& config_file);
     ~TSKPub();
+
+    /// @brief Read data from a sensor with a given name
+    /// @param sensor_name Sensor name in configuration file
+    /// @return Byte vector
     MsgConstPtr read(const std::string& sensor_name) const;
   };
 }  // namespace tskpub

@@ -8,8 +8,11 @@
 #include "TSKPub/tskpub.hh"
 
 namespace tskpub {
+  /// @brief Get current time in nanoseconds
+  /// @return
   uint64_t nano_now();
 
+  /// @brief Spdlog wrapper
   class Log {
   public:
     static void init();
@@ -46,12 +49,24 @@ namespace tskpub {
     static std::shared_ptr<spdlog::logger> logger_;
   };
 
+  /// @brief Global parameters
   class GlobalParams {
   public:
+    /// @brief Get the singleton instance
+    /// @return GlobalParams&
     static GlobalParams& get_instance();
+
+    /// @brief Load parameters from a YAML file
+    /// @param cfg_filename YAML file name
     void load_params(const std::string& cfg_filename);
+
+    /// @brief Destroy the singleton instance
     void destroy();
+
+    /// @brief YAML node
     fkyaml::node yml;
+
+    /// @brief Total read bytes
     std::atomic<uint64_t> total_read_bytes;
 
   private:
