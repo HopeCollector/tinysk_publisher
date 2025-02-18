@@ -14,6 +14,7 @@ namespace {
   using PointT = pcl::PointXYZI;
   using Cld = pcl::PointCloud<PointT>;
 
+  // config struct from xtsdk
   struct DeviceParams {
     int imgType;
     int HDR;
@@ -31,6 +32,7 @@ namespace {
     std::string connect_address;
   };
 
+  // config struct from xtsdk
   struct FilterParams {
     int medianSize;
     bool kalmanEnable;
@@ -51,14 +53,24 @@ namespace {
 
 namespace tskpub {
   struct LidarReader::Impl {
+    // xtsdk object
     std::unique_ptr<XinTan::XtSdk> xtsdk{nullptr};
+
+    // point cloud
     Cld::Ptr cld{nullptr};
     std::mutex cmtx;
+
+    // port to connect
     std::string port;
+
+    // lidar params
     Params params;
+
+    // downsample filter
     pcl::RandomSample<PointT> sampler;
 
     ~Impl() {
+      // stop xtsdk
       if (xtsdk && xtsdk->isconnect()) {
         xtsdk->stop();
         xtsdk->setCallback();
@@ -68,9 +80,14 @@ namespace tskpub {
 
     // copy from sdk_example.cpp
     void eventCallback(const std::shared_ptr<XinTan::CBEventData> &event);
+
+    // downsample and filter point cloud
     void imgCallback(const std::shared_ptr<XinTan::Frame> &imgframe);
+
+    // init xtsdk
     void init();
 
+    // read point cloud
     Cld::ConstPtr read() {
       if (!xtsdk) init();
       static Cld::Ptr prev_cld = nullptr;
@@ -161,8 +178,11 @@ namespace tskpub {
     auto &dev = params.device;
     auto &flt = params.filter;
     if (XinTan::Utils::isComport(port)) {
+      // connect serial port
       xtsdk->setConnectSerialportName(port);
     }
+
+    // set device params
     xtsdk->setSdkCloudCoordType(
         static_cast<XinTan::ClOUDCOORD_TYPE>(dev.cloud_coord));
     xtsdk->setCallback([this](auto event) { eventCallback(event); },
@@ -212,6 +232,7 @@ namespace tskpub {
 
     auto &cfg = GlobalParams::get_instance().yml[sensor_name];
     impl_->port = cfg["port"].get_value<std::string>();
+    // the size of the downsampled cloud
     impl_->sampler.setSample(cfg["cloud_size"].get_value<size_t>());
   }
 

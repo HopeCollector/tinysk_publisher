@@ -18,6 +18,10 @@ namespace {
     return result;
   }
 
+  /// @brief split string by delimiter
+  /// @param s string to split
+  /// @param delimiter
+  /// @return vector of string parts
   std::vector<std::string> split(const std::string& s, char delimiter) {
     std::vector<std::string> tokens;
     std::string token;
@@ -31,7 +35,9 @@ namespace {
 
 namespace tskpub {
   struct StatusReader::Impl {
+    // command to get the status of the system
     std::string cmd;
+    // total read bytes
     std::atomic<uint64_t>* total_read_bytes;
   };
 

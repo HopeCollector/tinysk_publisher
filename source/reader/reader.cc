@@ -9,16 +9,20 @@
 
 namespace tskpub {
   Reader::Reader(std::string sensor_name) : sensor_name_(sensor_name) {
+    // get params of sensor_name from config file
     auto& params = GlobalParams::get_instance().yml[sensor_name];
     if (params.empty()) {
       Log::critical("No params for sensor: " + sensor_name);
       return;
     }
+
+    // get topic and message type
     params["topic"].get_value_inplace(topic_);
     params["type"].get_value_inplace(msg_type_);
   }
 
   MsgPtr Reader::to_msg(capnp::MallocMessageBuilder& builder, size_t max_sz) {
+    // sensor_name is a prefix of msg
     size_t prefix_len = sensor_name_.size();
     size_t capacity = prefix_len + max_sz;
 
@@ -55,10 +59,12 @@ namespace tskpub {
     auto it = map.find(msg_type);
     bool ret = false;
     if (it != map.end()) {
+      // if msg_type already exists, return false
       Log::critical("Creater for message type: " + msg_type
                     + " already exists");
       ret = false;
     } else {
+      // if msg_type does not exist, insert it
       map[msg_type] = creator;
       ret = true;
     }
