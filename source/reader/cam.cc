@@ -34,7 +34,14 @@ namespace tskpub {
 
   void CameraReader::Impl::read_cb() {
     while (is_running) {
-      auto tmp = cam.capture();
+      camera::Image::ConstPtr tmp{nullptr};
+      try {
+        tmp = cam.capture();
+      } catch (const std::exception& e) {
+        Log::warn(e.what());
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      }
+
       if (!tmp) {
         continue;
       }
@@ -63,7 +70,6 @@ namespace tskpub {
     impl_ = std::make_unique<Impl>(ss.str());
     impl_->max_sz = width * height * 3;
     if (!impl_->cam.connect()) {
-      Log::critical("Failed to connect to camera");
       throw std::runtime_error("Failed to connect to camera");
     }
 
