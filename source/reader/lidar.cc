@@ -165,9 +165,9 @@ namespace tskpub {
     // downsample
     Cld::Ptr ret(new Cld);
     ret->resize(sampler.getSample());
-    ret->header.stamp = imgframe->timeStampS * 1e9 + imgframe->timeStampNS;
     sampler.setInputCloud(filtered);
     sampler.filter(*ret);
+    ret->header.stamp = nano_now();
 
     std::lock_guard<std::mutex> lock(cmtx);
     cld.swap(ret);
