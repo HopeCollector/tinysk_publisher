@@ -90,13 +90,10 @@ namespace tskpub {
     // read point cloud
     Cld::ConstPtr read() {
       if (!xtsdk) init();
-      static Cld::Ptr prev_cld = nullptr;
-      if (cld == prev_cld) {
-        return nullptr;
-      }
+      Cld::Ptr ret;
       std::lock_guard<std::mutex> lock(cmtx);
-      prev_cld.swap(cld);
-      return cld;
+      cld.swap(ret);
+      return ret;
     }
   };
 
@@ -243,6 +240,8 @@ namespace tskpub {
     if (!cld) {
       return nullptr;
     }
+
+    // Log::info(std::to_string(cld->header.stamp));
     return package_data(reinterpret_cast<const void *>(cld.get()));
   }
 
