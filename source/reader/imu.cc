@@ -76,7 +76,7 @@ namespace {
 }  // namespace
 
 namespace tskpub {
-  IMUReader::IMUReader(std::string sensor_name) : Reader(sensor_name) {}
+  IMUReader::IMUReader(const std::string& sensor_name) : Reader(sensor_name) {}
 
   IMUReader::~IMUReader() {
     if (imu) imu.reset();

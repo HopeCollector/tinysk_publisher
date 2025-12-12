@@ -20,7 +20,7 @@ namespace tskpub {
     Reader(Reader&) = delete;
     Reader(const Reader&) = delete;
     Reader& operator=(Reader&) = delete;
-    Reader(std::string sensor_name);
+    Reader(const std::string& sensor_name);
     virtual ~Reader() = default;
 
     /// @brief Read data from sensor
@@ -46,7 +46,7 @@ namespace tskpub {
   class ReaderFactory {
   public:
     /// @brief Creator function type
-    using Creator = std::function<Reader::Ptr(std::string)>;
+    using Creator = std::function<Reader::Ptr(const std::string&)>;
 
     /// @brief Create a reader
     /// @param msg_type
@@ -59,7 +59,7 @@ namespace tskpub {
     /// @param msg_type Message types processed by Reader
     /// @param creator Creator function for Reader
     /// @return
-    static bool regist(std::string msg_type, Creator creator);
+    static bool regist(const std::string& msg_type, Creator creator);
 
     /// @brief Get all registered creators.
     ///        Use a delayed construction method to ensure that the map is
@@ -83,7 +83,7 @@ namespace tskpub {
     ///        registration function is not optimized out by the compiler.
     /// @return
     static bool regist() __attribute__((used)) {
-      return ReaderFactory::regist(T::msg_type(), [](std::string sensor_name) {
+      return ReaderFactory::regist(T::msg_type(), [](const std::string& sensor_name) {
         return std::make_shared<T>(sensor_name);
       });
     }
@@ -117,7 +117,7 @@ namespace tskpub {
     StatusReader(StatusReader&) = delete;
     StatusReader(const StatusReader&) = delete;
     StatusReader& operator=(StatusReader&) = delete;
-    StatusReader(std::string sensor_name);
+    StatusReader(const std::string& sensor_name);
     virtual ~StatusReader();
     MsgConstPtr read() override;
     static const char* msg_type() noexcept { return "Status"; }
@@ -135,7 +135,7 @@ namespace tskpub {
     IMUReader(IMUReader&) = delete;
     IMUReader(const IMUReader&) = delete;
     IMUReader& operator=(IMUReader&) = delete;
-    IMUReader(std::string sensor_name);
+    IMUReader(const std::string& sensor_name);
     virtual ~IMUReader();
     void open_device();
     MsgConstPtr read() override;
@@ -152,7 +152,7 @@ namespace tskpub {
     CameraReader(CameraReader&) = delete;
     CameraReader(const CameraReader&) = delete;
     CameraReader& operator=(CameraReader&) = delete;
-    CameraReader(std::string sensor_name);
+    CameraReader(const std::string& sensor_name);
     virtual ~CameraReader();
     MsgConstPtr read() override;
     MsgPtr package_data(const void* data);
@@ -173,7 +173,7 @@ namespace tskpub {
     LidarReader(LidarReader&) = delete;
     LidarReader(const LidarReader&) = delete;
     LidarReader& operator=(LidarReader&) = delete;
-    LidarReader(std::string sensor_name);
+    LidarReader(const std::string& sensor_name);
     virtual ~LidarReader();
     MsgConstPtr read() override;
     MsgPtr package_data(const void* data);

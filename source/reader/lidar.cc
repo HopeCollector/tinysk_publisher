@@ -102,8 +102,7 @@ namespace tskpub {
 
   void LidarReader::Impl::eventCallback(
       const std::shared_ptr<XinTan::CBEventData> &event) {
-    Log::debug("event: " + event->eventstr + " "
-               + std::to_string(event->cmdid));
+    Log::debug("event: {} {}", event->eventstr, event->cmdid);
     if (event->eventstr == "sdkState") {
       // 端口打开后第一次连接上设备
       if (xtsdk->isconnect() && (event->cmdid == 0xfe)) {
@@ -111,9 +110,9 @@ namespace tskpub {
         XinTan::RespDevInfo devinfo;
         xtsdk->getDevInfo(devinfo);
 
-        Log::debug(devinfo.fwVersion.c_str());
-        Log::debug(devinfo.sn.c_str() + devinfo.chipidStr);
-        Log::debug("DEV SN=" + devinfo.sn);
+        Log::debug("{}", devinfo.fwVersion);
+        Log::debug("{}{}", devinfo.sn, devinfo.chipidStr);
+        Log::debug("DEV SN={}", devinfo.sn);
 
         xtsdk->setModFreq(
             (XinTan::ModulationFreq)params.device.frequency_modulation);
@@ -125,18 +124,17 @@ namespace tskpub {
         xtsdk->setCutCorner(params.device.cut_corner);
         xtsdk->start((XinTan::ImageType)params.device.imgType);
       }
-      Log::debug("sdkstate= " + xtsdk->getStateStr());
+      Log::debug("sdkstate= {}", xtsdk->getStateStr());
     } else if (event->eventstr == "devState") {
-      Log::debug("devstate= " + xtsdk->getStateStr());
+      Log::debug("devstate= {}", xtsdk->getStateStr());
     } else {
       if (event->cmdid == XinTan::REPORT_LOG)  // log
       {
         std::string logdata;
         logdata.assign(event->data.begin(), event->data.end());
-        Log::debug("log: " + logdata);
+        Log::debug("log: {}", logdata);
       }
-      Log::debug("event: " + event->eventstr
-                 + " cmd=" + std::to_string(event->cmdid));
+      Log::debug("event: {} cmd={}", event->eventstr, event->cmdid);
     }
   }
 
@@ -149,18 +147,18 @@ namespace tskpub {
 
     // filter out nan points
     Cld::Ptr filtered{new Cld};
-    filtered->reserve(imgframe->points.size());
-    std::for_each(imgframe->points.begin(), imgframe->points.end(),
-                  [&filtered](const XinTan::XtPointXYZI &p) {
-                    if (std::isnan(p.x) || std::isnan(p.y) || std::isnan(p.z))
-                      return;
-                    PointT pt;
-                    pt.x = p.x;
-                    pt.y = p.y;
-                    pt.z = p.z;
-                    pt.intensity = p.intensity;
-                    filtered->push_back(pt);
-                  });
+    const size_t point_count = imgframe->points.size();
+    filtered->reserve(point_count);
+    for (const auto& p : imgframe->points) {
+      if (std::isnan(p.x) || std::isnan(p.y) || std::isnan(p.z))
+        continue;
+      PointT pt;
+      pt.x = p.x;
+      pt.y = p.y;
+      pt.z = p.z;
+      pt.intensity = p.intensity;
+      filtered->push_back(pt);
+    }
 
     // downsample
     Cld::Ptr ret(new Cld);
@@ -198,7 +196,7 @@ namespace tskpub {
     xtsdk->startup();
   }
 
-  LidarReader::LidarReader(std::string sensor_name)
+  LidarReader::LidarReader(const std::string& sensor_name)
       : Reader(sensor_name), impl_(std::make_unique<Impl>()) {
     auto &dev = impl_->params.device;
     const auto &dcfg = GlobalParams::get_instance().yml[sensor_name]["device"];

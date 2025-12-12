@@ -41,7 +41,7 @@ namespace tskpub {
     std::atomic<uint64_t>* total_read_bytes;
   };
 
-  StatusReader::StatusReader(std::string sensor_name)
+  StatusReader::StatusReader(const std::string& sensor_name)
       : Reader(sensor_name), impl_(std::make_unique<Impl>()) {
     auto params = GlobalParams::get_instance().yml[sensor_name_];
     impl_->cmd = params["cmd"].get_value<std::string>();
@@ -67,8 +67,7 @@ namespace tskpub {
     status.setBatteryVoltage(std::stod(results[3]));
     status.setBatteryCurrent(std::stod(results[4]));
     status.setIp(results[5]);
-    status.setTotalReadBytes(impl_->total_read_bytes->load());
-    impl_->total_read_bytes->store(0);
+    status.setTotalReadBytes(impl_->total_read_bytes->exchange(0));
     return to_msg(message, 1024);
   }
 }  // namespace tskpub

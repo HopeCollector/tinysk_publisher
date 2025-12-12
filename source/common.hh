@@ -23,23 +23,29 @@ namespace tskpub {
       logger_ = logger;
     }
 
-    static void trace(const std::string& msg) {
-      if (logger_) logger_->trace(msg);
+    template<typename... Args>
+    static void trace(Args&&... args) {
+      if (logger_) logger_->trace(std::forward<Args>(args)...);
     }
-    static void debug(const std::string& msg) {
-      if (logger_) logger_->debug(msg);
+    template<typename... Args>
+    static void debug(Args&&... args) {
+      if (logger_) logger_->debug(std::forward<Args>(args)...);
     }
-    static void info(const std::string& msg) {
-      if (logger_) logger_->info(msg);
+    template<typename... Args>
+    static void info(Args&&... args) {
+      if (logger_) logger_->info(std::forward<Args>(args)...);
     }
-    static void warn(const std::string& msg) {
-      if (logger_) logger_->warn(msg);
+    template<typename... Args>
+    static void warn(Args&&... args) {
+      if (logger_) logger_->warn(std::forward<Args>(args)...);
     }
-    static void error(const std::string& msg) {
-      if (logger_) logger_->error(msg);
+    template<typename... Args>
+    static void error(Args&&... args) {
+      if (logger_) logger_->error(std::forward<Args>(args)...);
     }
-    static void critical(const std::string& msg) {
-      if (logger_) logger_->critical(msg);
+    template<typename... Args>
+    static void critical(Args&&... args) {
+      if (logger_) logger_->critical(std::forward<Args>(args)...);
     }
 
   private:
