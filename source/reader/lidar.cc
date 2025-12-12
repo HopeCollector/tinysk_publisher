@@ -152,7 +152,12 @@ namespace tskpub {
     for (const auto& p : imgframe->points) {
       if (std::isnan(p.x) || std::isnan(p.y) || std::isnan(p.z))
         continue;
-      filtered->emplace_back(p.x, p.y, p.z, p.intensity);
+      PointT pt;
+      pt.x = p.x;
+      pt.y = p.y;
+      pt.z = p.z;
+      pt.intensity = p.intensity;
+      filtered->push_back(pt);
     }
 
     // downsample

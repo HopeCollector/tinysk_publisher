@@ -3,7 +3,6 @@
 #include <capnp/common.h>
 #include <capnp/serialize-packed.h>
 
-#include <cstring>
 #include <iomanip>
 
 #include "TSKPub/msg/Status.capnp.h"
@@ -27,9 +26,11 @@ namespace tskpub {
     size_t prefix_len = sensor_name_.size();
     size_t capacity = prefix_len + max_sz;
 
-    // write sensor name
-    auto ret = std::make_shared<Msg>(capacity);
-    std::memcpy(ret->data(), sensor_name_.data(), prefix_len);
+    // write sensor name with pre-allocated capacity
+    auto ret = std::make_shared<Msg>();
+    ret->reserve(capacity);
+    ret->resize(capacity);
+    std::copy(sensor_name_.begin(), sensor_name_.end(), ret->begin());
 
     // write message body
     kj::ArrayPtr<kj::byte> array(&ret->at(prefix_len),
