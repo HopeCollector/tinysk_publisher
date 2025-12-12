@@ -43,7 +43,7 @@ namespace tskpub {
     }
   }
 
-  CameraReader::CameraReader(std::string sensor_name) : Reader(sensor_name) {
+  CameraReader::CameraReader(const std::string& sensor_name) : Reader(sensor_name) {
     auto params = GlobalParams::get_instance().yml[sensor_name_];
     std::stringstream ss;
     auto width = params["width"].get_value<int>();
@@ -57,7 +57,7 @@ namespace tskpub {
        << " videorate ! image/jpeg framerate=" << params["fps"].get_value<int>() << "/1 !"
        << " jpegparse ! appsink name=s";
     // clang-format on
-    Log::info("Camera pipeline: " + ss.str());
+    Log::info("Camera pipeline: {}", ss.str());
 
     // create camera object
     impl_ = std::make_unique<Impl>(ss.str());

@@ -3,16 +3,17 @@
 #include <capnp/common.h>
 #include <capnp/serialize-packed.h>
 
+#include <cstring>
 #include <iomanip>
 
 #include "TSKPub/msg/Status.capnp.h"
 
 namespace tskpub {
-  Reader::Reader(std::string sensor_name) : sensor_name_(sensor_name) {
+  Reader::Reader(const std::string& sensor_name) : sensor_name_(sensor_name) {
     // get params of sensor_name from config file
     auto& params = GlobalParams::get_instance().yml[sensor_name];
     if (params.empty()) {
-      Log::critical("No params for sensor: " + sensor_name);
+      Log::critical("No params for sensor: {}", sensor_name);
       return;
     }
 
@@ -28,7 +29,7 @@ namespace tskpub {
 
     // write sensor name
     auto ret = std::make_shared<Msg>(capacity);
-    ret->insert(ret->begin(), sensor_name_.begin(), sensor_name_.end());
+    std::memcpy(ret->data(), sensor_name_.data(), prefix_len);
 
     // write message body
     kj::ArrayPtr<kj::byte> array(&ret->at(prefix_len),
@@ -48,20 +49,19 @@ namespace tskpub {
     const auto& map = creaters();
     auto it = map.find(msg_type);
     if (it == map.end()) {
-      Log::critical("No creater for message type: " + msg_type);
+      Log::critical("No creater for message type: {}", msg_type);
       return nullptr;
     }
     return it->second(sensor_name);
   }
 
-  bool ReaderFactory::regist(std::string msg_type, Creator creator) {
+  bool ReaderFactory::regist(const std::string& msg_type, Creator creator) {
     auto& map = creaters();
     auto it = map.find(msg_type);
     bool ret = false;
     if (it != map.end()) {
       // if msg_type already exists, return false
-      Log::critical("Creater for message type: " + msg_type
-                    + " already exists");
+      Log::critical("Creater for message type: {} already exists", msg_type);
       ret = false;
     } else {
       // if msg_type does not exist, insert it

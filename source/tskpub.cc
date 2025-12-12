@@ -44,7 +44,7 @@ namespace tskpub {
     auto it = sensor_reader_map.find(sensor_name);
     if (it == sensor_reader_map.end()) {
       // if sensor_name is not found, return nullptr
-      Log::critical("No reader for sensor: " + sensor_name);
+      Log::critical("No reader for sensor: {}", sensor_name);
       return nullptr;
     }
     auto msg = it->second->read();
